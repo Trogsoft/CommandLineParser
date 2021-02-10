@@ -2,6 +2,7 @@
 
 namespace Trogsoft.CommandLine
 {
+    [AttributeUsage(AttributeTargets.Method)]
     public class OperationAttribute : Attribute
     {
 

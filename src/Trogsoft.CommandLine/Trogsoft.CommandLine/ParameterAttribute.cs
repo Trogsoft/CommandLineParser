@@ -4,6 +4,7 @@ using System.Text;
 
 namespace Trogsoft.CommandLine
 {
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class ParameterAttribute : Attribute
     {
         public char ShortName { get; set; }
@@ -16,6 +17,11 @@ namespace Trogsoft.CommandLine
         public ParameterAttribute()
         {
 
+        }
+
+        public ParameterAttribute(string longName)
+        {
+            LongName = longName;
         }
 
         public ParameterAttribute(char shortName)

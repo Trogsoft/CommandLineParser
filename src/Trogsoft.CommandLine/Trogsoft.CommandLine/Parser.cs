@@ -47,6 +47,7 @@ namespace Trogsoft.CommandLine
             if (!args.Any())
             {
                 Error("No arguments passed.");
+                Help();
                 return ERR_NO_ARGUMENTS;
             }
 
@@ -76,7 +77,8 @@ namespace Trogsoft.CommandLine
 
             if (method == null)
             {
-                Error("Method not found.");
+                Error("No such action.");
+                Help();
                 return ERR_METHOD_NOT_FOUND;
             }
 
@@ -193,7 +195,68 @@ namespace Trogsoft.CommandLine
 
         private void Help(string verb = null, string action = null)
         {
+
+            var verbs = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(x => x.GetTypes().Where(y => typeof(Verb).IsAssignableFrom(y) && y.IsPublic && !y.IsInterface && !y.IsAbstract && y.GetCustomAttribute<VerbAttribute>() != null)
+                    .Select(y => (verbInfo: y.GetCustomAttribute<VerbAttribute>(), verbType: y)));
+
+            var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower();
+            Console.WriteLine();
             Console.WriteLine("Help");
+            Console.WriteLine();
+            Console.WriteLine("Usage: ");
+            Console.WriteLine($"  {processName} verb [action] [parameters]");
+            Console.WriteLine();
+
+            if (verb == null)
+            {
+                Console.WriteLine("Possible verbs:");
+                Console.WriteLine();
+                var maxVerbWidth = verbs.Max(y => y.verbInfo.Name.Length) + 2;
+                var helpWidth = 80 - maxVerbWidth - 2;
+
+                foreach (var v in verbs.OrderBy(x => x.verbInfo.Name))
+                {
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.Write(v.verbInfo.Name.ToLower().PadLeft(maxVerbWidth)+"  ");
+                    Console.ResetColor();
+                    if (!string.IsNullOrWhiteSpace(v.verbInfo.HelpText))
+                    {
+                        var helpWords = v.verbInfo.HelpText.Split();
+                        var wCount = 0;
+                        var line = "";
+                        List<string> lines = new List<string>();
+
+                        foreach (var word in helpWords)
+                        {
+                            line += word + " ";
+                            wCount += word.Length + 1;
+                            if (wCount >= helpWidth)
+                            {
+                                wCount = 0;
+                                lines.Add(line);
+                                line = "";
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(line))
+                            lines.Add(line);
+
+                        foreach (var l in lines)
+                        {
+                            Console.WriteLine(l.Trim());
+                            Console.Write(new string(Enumerable.Range(0, maxVerbWidth + 2).Select(x => ' ').ToArray()));
+                        }
+
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine();
+                }
+                Console.WriteLine($"For more specific help, try {processName} help verb");
+            }
+
+            Console.WriteLine();
+
         }
 
         private void Error(string message)

@@ -53,7 +53,7 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void ListTypeError()
         {
-            Assert.Throws<FormatException>(() => parser.Run(new string[] { "testb", "ListError1", "-i", "a,b,c" }));
+            Assert.Throws<FormatException>(() => parser.Run(new string[] { "testb", "ListError1", "--items", "a,b,c" }));
         }
 
         [Test(Description = "Tests the unconfigured parameter named 'items' as well as the appropriate casting.  This action adds together each number in the list.")]

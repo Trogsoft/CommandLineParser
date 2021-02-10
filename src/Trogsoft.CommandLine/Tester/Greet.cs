@@ -7,12 +7,14 @@ using Trogsoft.CommandLine;
 
 namespace Tester
 {
-    [Verb("greet")]
+    [Verb("greet", HelpText = "Greet someone.")]
     public class Greet : Verb
     {
 
         [Operation(isDefault: true)]
-        public int DefaultOperation(string name)
+        [Parameter("name", HelpText = "The name of the person to greet.", IsRequired = true)]
+        [Parameter("greeting", HelpText = "The greeting you would like to use.", IsRequired = false)]
+        public int DefaultOperation(string name, string greeting)
         {
             Console.WriteLine($"Hello, {name}.");
             return 0;
