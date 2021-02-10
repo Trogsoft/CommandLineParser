@@ -27,7 +27,7 @@ namespace Test
 	public static int Main(string[] args) 
 	{
 		var cmdParser = new Parser();
-		cmdParser.Run(args);
+		return cmdParser.Run(args);
 	}
 }
 
