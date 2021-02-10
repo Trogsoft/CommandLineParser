@@ -61,5 +61,11 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(6, parser.Run(new string[] { "testb", "ListError1", "--items", "1 2 3" }));
         }
 
+        [Test]
+        public void TestGreet()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "greet", "Dave" }));
+        }
+
     }
 }

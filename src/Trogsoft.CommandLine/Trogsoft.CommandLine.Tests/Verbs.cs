@@ -59,4 +59,15 @@ namespace Trogsoft.CommandLine.Tests
 
     }
 
+    [Verb("greet")]
+    public class GreetVerb : Verb
+    {
+        [Operation(true)]
+        public int DefaultAction(string name)
+        {
+            Console.WriteLine($"Hello, {name}.");
+            return 0;
+        }
+    }
+
 }

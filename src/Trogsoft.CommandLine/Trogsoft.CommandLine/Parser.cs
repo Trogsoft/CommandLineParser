@@ -113,7 +113,7 @@ namespace Trogsoft.CommandLine
                 return paraMarker > -1;
             }
 
-            bool isList = typeof(IEnumerable).IsAssignableFrom(type);
+            bool isList = typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
 
             if (args.Count() > paraMarker)
             {
