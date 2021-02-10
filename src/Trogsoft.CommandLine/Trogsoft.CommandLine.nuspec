@@ -8,7 +8,7 @@
     <projectUrl>https://github.com/Trogsoft/CommandLineParser</projectUrl>
   </metadata>
   <files>
-    <file src="Trogsoft.CommandLine\Trogsoft.CommandLine\bin\Debug\netstandard2.1\Trogsoft.CommandLine.dll" target="netstandard2.1" />
+    <file src="Trogsoft.CommandLine\bin\Debug\netstandard2.1\Trogsoft.CommandLine.dll" target="netstandard2.1" />
     <file src="icon.png" target="" />
   </files>
 </package>
