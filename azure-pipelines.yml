@@ -27,9 +27,14 @@ steps:
     command: 'test'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
 
+- task: PowerShell@2
+  inputs:
+    filePath: 'version.ps1'
+
 - task: NuGetCommand@2
   inputs:
     command: 'pack'
     packagesToPack: '**/*.nuspec'
     configuration: 'Debug'
-    versioningScheme: 'byBuildNumber'
+    versioningScheme: 'byEnvVar'
+    versionEnvVar: 'VERSION'
