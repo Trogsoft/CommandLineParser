@@ -36,7 +36,7 @@ namespace Test
 On the command line, you can then call
 
 ```
-> test greet Dave
+> test greet --name Dave
 Hello, Dave.
 ```
 
