@@ -24,10 +24,13 @@ using Trogsoft.CommandLine;
 
 namespace Test 
 {
-	public static int Main(string[] args) 
+	public class Test 
 	{
-		var cmdParser = new Parser();
-		return cmdParser.Run(args);
+		public static int Main(string[] args) 
+		{
+			var cmdParser = new Parser();
+			return cmdParser.Run(args);
+		}
 	}
 }
 
