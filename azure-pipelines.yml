@@ -1,0 +1,29 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- develop
+
+pool:
+  vmImage: ubuntu-default
+
+steps:
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj'
+    feedsToUse: 'select'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build'
+  inputs:
+    command: 'build'
+    projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
+    arguments: '--no-restore'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'test'
+    projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
