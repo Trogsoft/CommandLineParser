@@ -37,4 +37,4 @@ steps:
     packagesToPack: '**/*.nuspec'
     configuration: 'Debug'
     versioningScheme: 'byEnvVar'
-    versionEnvVar: 'VERSION'
+    versionEnvVar: 'VER'
