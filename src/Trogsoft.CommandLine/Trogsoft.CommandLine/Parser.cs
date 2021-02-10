@@ -200,6 +200,12 @@ namespace Trogsoft.CommandLine
                 .SelectMany(x => x.GetTypes().Where(y => typeof(Verb).IsAssignableFrom(y) && y.IsPublic && !y.IsInterface && !y.IsAbstract && y.GetCustomAttribute<VerbAttribute>() != null)
                     .Select(y => (verbInfo: y.GetCustomAttribute<VerbAttribute>(), verbType: y)));
 
+            if (!verbs.Any())
+            {
+                Error("This command contains no verbs.");
+                return;
+            }
+
             var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower();
             Console.WriteLine();
             Console.WriteLine("Help");
