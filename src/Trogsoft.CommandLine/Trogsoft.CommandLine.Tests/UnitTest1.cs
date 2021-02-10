@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using System;
+using System.IO;
 
 namespace Trogsoft.CommandLine.Tests
 {
@@ -64,7 +65,14 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void TestGreet()
         {
-            Assert.AreEqual(0, parser.Run(new string[] { "greet", "Dave" }));
+            Assert.AreEqual(0, parser.Run(new string[] { "greet", "--name", "Dave" }));
+        }
+
+        [Test]
+        public void TestGreet2()
+        {
+            // Missing parameter here.
+            Assert.AreEqual(4, parser.Run(new string[] { "greet", "Dave" }));
         }
 
     }

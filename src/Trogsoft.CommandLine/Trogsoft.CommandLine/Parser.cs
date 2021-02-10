@@ -12,9 +12,36 @@ namespace Trogsoft.CommandLine
         const int ERR_NO_ARGUMENTS = 1;
         const int ERR_UNRECOGNISED_OPERATION = 2;
         const int ERR_METHOD_NOT_FOUND = 3;
+        const int ERR_PARAMETER_MISSING = 4;
+
+        public string AppTitle { get; }
+        public string AppDescription { get; }
+
+        public Parser()
+        {
+        }
+
+        public Parser(string appTitle) : this()
+        {
+            AppTitle = appTitle;
+        }
+
+        public Parser(string appTitle, string appDescription) : this(appTitle)
+        {
+            AppDescription = appDescription;
+        }
 
         public int Run(string[] args)
         {
+
+            Console.ForegroundColor = ConsoleColor.White;
+            if (!string.IsNullOrWhiteSpace(AppTitle))
+                Console.WriteLine(AppTitle);
+
+            if (!string.IsNullOrWhiteSpace(AppDescription))
+                Console.WriteLine(AppDescription);
+
+            Console.ResetColor();
 
             // any args?
             if (!args.Any())
@@ -54,8 +81,18 @@ namespace Trogsoft.CommandLine
             }
 
             var vi = Activator.CreateInstance(verb);
-            var para = getMethodParameters(method, args);
-            var result = method.Invoke(vi, para);
+            object result = null;
+            try
+            {
+                var para = getMethodParameters(method, args);
+                result = method.Invoke(vi, para);
+            }
+            catch (ParameterMissingException ex)
+            {
+                Error($"Missing parameter: {ex.ParameterInfo.LongName ?? ex.ParameterInfo.ShortName.ToString()}");
+                Help(verbName);
+                return ERR_PARAMETER_MISSING;
+            }
 
             if (result is int)
                 return (int)result;
@@ -79,9 +116,9 @@ namespace Trogsoft.CommandLine
 
                 if (paraConfig == null)
                     if (para.Name.Length == 1)
-                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First() };
+                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue };
                     else
-                        paraConfig = new ParameterAttribute { LongName = para.Name };
+                        paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue };
 
                 var type = para.ParameterType;
                 var value = getParameterValue(type, paraConfig, args);
@@ -115,7 +152,7 @@ namespace Trogsoft.CommandLine
 
             bool isList = typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
 
-            if (args.Count() > paraMarker)
+            if (args.Count() > paraMarker && paraMarker >= 1)
             {
                 var value = args[paraMarker + 1];
                 if (isList)
@@ -144,8 +181,7 @@ namespace Trogsoft.CommandLine
             {
                 if (paraConfig.IsRequired)
                 {
-                    Error("Missing parameter: " + paraConfig.LongName);
-                    throw new Exception();
+                    throw new ParameterMissingException(paraConfig);
                 }
                 else
                 {
@@ -153,6 +189,11 @@ namespace Trogsoft.CommandLine
                 }
             }
 
+        }
+
+        private void Help(string verb = null, string action = null)
+        {
+            Console.WriteLine("Help");
         }
 
         private void Error(string message)
