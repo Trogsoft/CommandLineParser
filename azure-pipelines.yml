@@ -39,3 +39,11 @@ steps:
     configuration: 'Debug'
     versioningScheme: 'byEnvVar'
     versionEnvVar: 'setVer.ver'
+
+- task: NuGetCommand@2
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '48274686-e251-4703-8b54-41d6861884b9'
+    allowPackageConflicts: true
