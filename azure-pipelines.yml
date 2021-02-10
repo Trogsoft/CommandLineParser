@@ -28,6 +28,7 @@ steps:
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
 
 - task: PowerShell@2
+  name: 'setVer'
   inputs:
     filePath: 'version.ps1'
 
@@ -37,4 +38,4 @@ steps:
     packagesToPack: '**/*.nuspec'
     configuration: 'Debug'
     versioningScheme: 'byEnvVar'
-    versionEnvVar: '$(VER)'
+    versionEnvVar: 'setVer.ver'

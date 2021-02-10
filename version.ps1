@@ -5,4 +5,4 @@ $bn = ($ts.TotalSeconds % 3600)
 $rn = $Env:BuildID
 $ver = "0.1.$rn.$bn";
 
-Write-Host "##vso[task.setvariable variable=VER;isOutput=true]$($ver)"
+Write-Host "##vso[task.setvariable variable=ver;isOutput=true]$($ver)"
