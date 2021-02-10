@@ -1,7 +1,7 @@
 $cd = get-date
 $sd = get-date -Hour 0 -Minute 0 -Second 0
 $ts = $cd - $sd
-$bn = ($ts.TotalSeconds % 3600).toString("0000")
+$bn = (($ts.TotalSeconds / 86400) * 9999).toString("0000")
 $rn = $env:BUILD_BUILDID
 $ver = "0.1.$rn.$bn";
 
