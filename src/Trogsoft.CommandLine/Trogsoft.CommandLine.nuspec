@@ -9,6 +9,7 @@
   </metadata>
   <files>
     <file src="Trogsoft.CommandLine\bin\Debug\netstandard2.1\Trogsoft.CommandLine.dll" target="netstandard2.1" />
+    <file src="Trogsoft.CommandLine\bin\Debug\netstandard2.1\Trogsoft.CommandLine.dll" target="netcore5" />
     <file src="icon.png" target="" />
   </files>
 </package>
