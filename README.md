@@ -2,7 +2,7 @@
 
 This is a command line argument parser which separates out actions into self contained classes known as verbs.  To create a verb:
 
-```
+```c#
 [Verb("greet")]
 public class TestVerb : Verb 
 {
@@ -19,7 +19,7 @@ public class TestVerb : Verb
 
 In `Program.cs` you can then configure the command line parser.
 
-```
+```c#
 using Trogsoft.CommandLine;
 
 namespace Test 
