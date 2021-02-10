@@ -20,9 +20,16 @@ steps:
   inputs:
     command: 'build'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
-    arguments: '--no-restore'
+    arguments: '--no-restore /p:Configuration=Debug'
 
 - task: DotNetCoreCLI@2
   inputs:
     command: 'test'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
+
+- task: NuGetCommand@2
+  inputs:
+    command: 'pack'
+    packagesToPack: '**/*.nuspec'
+    configuration: 'Debug'
+    versioningScheme: 'byBuildNumber'
