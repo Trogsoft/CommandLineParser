@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Trogsoft.CommandLine</id>
+    <version>0.1</version>
+    <description>Command line parser and action dispatcher.</description>
+    <authors>Trogsoft Ltd</authors>
+    <projectUrl>https://github.com/Trogsoft/CommandLineParser</projectUrl>
+  </metadata>
+  <files>
+    <file src="Trogsoft.CommandLine\Trogsoft.CommandLine\bin\Release\netstandard2.1\Trogsoft.CommandLine.dll" target="netstandard2.1" />
+    <file src="icon.png" target="" />
+  </files>
+</package>
