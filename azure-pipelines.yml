@@ -9,6 +9,12 @@ trigger:
 pool: ANDREA
 
 steps:
+
+- task: PowerShell@2
+  name: 'setVer'
+  inputs:
+    filePath: 'version.ps1'
+
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
@@ -20,17 +26,12 @@ steps:
   inputs:
     command: 'build'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
-    arguments: '--no-restore /p:Configuration=Debug'
+    arguments: '--no-restore /p:Configuration=Debug /p:Version=$(setVer.ver)'
 
 - task: DotNetCoreCLI@2
   inputs:
     command: 'test'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
-
-- task: PowerShell@2
-  name: 'setVer'
-  inputs:
-    filePath: 'version.ps1'
 
 - task: NuGetCommand@2
   inputs:
