@@ -26,7 +26,7 @@ steps:
   inputs:
     command: 'build'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
-    arguments: '--no-restore /p:Configuration=Debug /p:Version=$(setVer.ver)'
+    arguments: '--no-restore /p:Configuration=Debug /p:Version=$(setVer.ver) /p:AssemblyVersion=$(setVer.ver) /p:FileVersion=$(setVer.ver)'
 
 - task: DotNetCoreCLI@2
   inputs:
