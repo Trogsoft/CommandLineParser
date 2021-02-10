@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30611.23
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trogsoft.CommandLine", "Trogsoft.CommandLine\Trogsoft.CommandLine.csproj", "{84F83C9E-A636-4C23-B7FB-AAA4F2B46791}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trogsoft.CommandLine.Tests", "Trogsoft.CommandLine.Tests\Trogsoft.CommandLine.Tests.csproj", "{FFC31D4A-168D-4AB9-8302-2782C2BA8893}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{84F83C9E-A636-4C23-B7FB-AAA4F2B46791}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84F83C9E-A636-4C23-B7FB-AAA4F2B46791}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84F83C9E-A636-4C23-B7FB-AAA4F2B46791}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84F83C9E-A636-4C23-B7FB-AAA4F2B46791}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFC31D4A-168D-4AB9-8302-2782C2BA8893}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFC31D4A-168D-4AB9-8302-2782C2BA8893}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFC31D4A-168D-4AB9-8302-2782C2BA8893}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFC31D4A-168D-4AB9-8302-2782C2BA8893}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8A5F0885-79CA-4E44-8008-934D52FFFFF3}
+	EndGlobalSection
+EndGlobal
