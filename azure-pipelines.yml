@@ -10,6 +10,9 @@ pool: ANDREA
 
 steps:
 
+- task: NuGetToolInstaller@1
+  inputs:
+    versionSpec: '4.9.0'
 - task: PowerShell@2
   name: 'setVer'
   inputs:
