@@ -1,4 +1,4 @@
-$pre = $args[0];
+$branch = $Env:BUILD_SOURCEBRANCH
 
 $cd = get-date
 $sd = get-date -Hour 0 -Minute 0 -Second 0
@@ -7,7 +7,7 @@ $bn = (($ts.TotalSeconds / 86400) * 9999).toString("0000")
 $rn = $env:BUILD_BUILDID
 $ver = "0.1.$rn.$bn";
 
-if ($pre -eq "-pre") {
+if ($branch -eq "refs/heads/develop") {
 	$ver = "$($ver)-pre";
 }
 
