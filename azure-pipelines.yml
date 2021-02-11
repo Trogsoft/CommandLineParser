@@ -22,16 +22,16 @@ steps:
     feedsToUse: 'select'
 
 - task: DotNetCoreCLI@2
+  inputs:
+    command: 'test'
+    projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
+
+- task: DotNetCoreCLI@2
   displayName: 'dotnet build'
   inputs:
     command: 'build'
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
     arguments: '--no-restore /p:Configuration=Debug /p:Version=$(setVer.ver) /p:AssemblyVersion=$(setVer.ver) /p:FileVersion=$(setVer.ver)'
-
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'test'
-    projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.Tests/Trogsoft.CommandLine.Tests.csproj'
 
 - task: NuGetCommand@2
   inputs:
