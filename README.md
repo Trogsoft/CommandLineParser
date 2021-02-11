@@ -1,5 +1,7 @@
 # CommandLineParser
 
+[![Build Status](https://dev.azure.com/trogsoft-ltd/Trogsoft.CommandLineParser/_apis/build/status/Trogsoft.CommandLineParser?branchName=develop)](https://dev.azure.com/trogsoft-ltd/Trogsoft.CommandLineParser/_build/latest?definitionId=8&branchName=develop)
+
 This is a command line argument parser which separates out actions into self contained classes known as verbs.  To create a verb:
 
 ```c#
