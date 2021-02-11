@@ -57,6 +57,12 @@ namespace Trogsoft.CommandLine.Tests
             return items.Sum();
         }
 
+        [Operation("cheese")]
+        public int NamedSomethingElse(string cheeseName)
+        {
+            return 0;
+        }
+
     }
 
     [Verb("greet")]

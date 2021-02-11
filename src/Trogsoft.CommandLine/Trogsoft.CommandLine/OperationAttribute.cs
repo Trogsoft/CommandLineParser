@@ -10,11 +10,22 @@ namespace Trogsoft.CommandLine
         {
         }
 
+        public OperationAttribute(string name)
+        {
+            Name = name;
+        }
+
+        public OperationAttribute(string name, bool isDefault) : this(isDefault)
+        {
+            Name = name;
+        }
+
         public OperationAttribute(bool isDefault)
         {
             IsDefault = isDefault;
         }
 
         public bool IsDefault { get; } = false;
+        public string Name { get; }
     }
 }

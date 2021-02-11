@@ -75,5 +75,11 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(4, parser.Run(new string[] { "greet", "Dave" }));
         }
 
+        [Test]
+        public void TestNamedOperation()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testb", "cheese", "--cheeseName", "cheddar" }));
+        }
+
     }
 }

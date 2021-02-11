@@ -14,6 +14,8 @@ namespace Trogsoft.CommandLine
         public object Default { get; set; }
         public string Parameter { get; set; }
         public string ListSeparator { get; set; } = " ";
+        public int? Position { get; set; } = null;
+
         public ParameterAttribute()
         {
 

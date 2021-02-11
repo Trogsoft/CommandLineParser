@@ -51,6 +51,7 @@ namespace Trogsoft.CommandLine
                 return ERR_NO_ARGUMENTS;
             }
 
+            int usedParameters = 1;
             var verbName = args.First();
             var operationName = args.Length > 1 ? args[1] : null;
 
@@ -67,13 +68,29 @@ namespace Trogsoft.CommandLine
             var methods = verb.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => (method: x, op: x.GetCustomAttribute<OperationAttribute>())).ToList();
 
             // find the method
-            var method =
-                operationName == null
-                    ? (methods.Any(x => x.op.IsDefault) ? methods.SingleOrDefault(x => x.op.IsDefault).method : null)
-                    : methods.SingleOrDefault(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
-
-            if (method == null)
-                method = methods.SingleOrDefault(x => x.op.IsDefault).method;
+            MethodInfo method = null;
+            if (operationName == null)
+            {
+                if (methods.Any(x => x.op.IsDefault))
+                {
+                    method = methods.SingleOrDefault(x => x.op.IsDefault).method;
+                }
+            }
+            else
+            {
+                if (methods.Any(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    method = methods.SingleOrDefault(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
+                }
+                else if (methods.Any(x => x.op.Name != null && x.op.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)))
+                {
+                    method = methods.SingleOrDefault(x => x.op.Name != null && x.op.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
+                }
+                else if (methods.Any(x => x.op.IsDefault))
+                {
+                    method = methods.SingleOrDefault(x => x.op.IsDefault).method;
+                }
+            }
 
             if (method == null)
             {
@@ -224,7 +241,7 @@ namespace Trogsoft.CommandLine
                 foreach (var v in verbs.OrderBy(x => x.verbInfo.Name))
                 {
                     Console.ForegroundColor = ConsoleColor.White;
-                    Console.Write(v.verbInfo.Name.ToLower().PadLeft(maxVerbWidth)+"  ");
+                    Console.Write(v.verbInfo.Name.ToLower().PadLeft(maxVerbWidth) + "  ");
                     Console.ResetColor();
                     if (!string.IsNullOrWhiteSpace(v.verbInfo.HelpText))
                     {
