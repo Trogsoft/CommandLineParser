@@ -7,7 +7,8 @@ namespace Tester
     {
         static int Main(string[] args)
         {
-            var parser = new Parser("Trogsoft CommandLineParser Test");
+            var parser = new Parser();
+
             return parser.Run(args);
         }
     }

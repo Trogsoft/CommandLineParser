@@ -87,5 +87,12 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(0, parser.Run(new string[] { "testb", "pospara", "path/path/path", "--filename", "fn.txt" }));
         }
 
+        [Test]
+        public void Enum()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testb", "enumtest", "-e", "chicken" }));
+            Assert.AreEqual(5, parser.Run(new string[] { "testb", "enumtest", "-e", "invalid_value" }));
+        }
+
     }
 }

@@ -73,6 +73,19 @@ namespace Trogsoft.CommandLine.Tests
             return result;
         }
 
+        [Operation]
+        public int EnumTest(EnumTest e)
+        {
+            return 0;
+        }
+
+    }
+
+    public enum EnumTest
+    {
+        EVA,
+        EVB,
+        Chicken
     }
 
     [Verb("greet")]

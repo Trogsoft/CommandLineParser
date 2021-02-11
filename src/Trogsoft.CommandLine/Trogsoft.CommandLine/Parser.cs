@@ -13,35 +13,14 @@ namespace Trogsoft.CommandLine
         const int ERR_UNRECOGNISED_OPERATION = 2;
         const int ERR_METHOD_NOT_FOUND = 3;
         const int ERR_PARAMETER_MISSING = 4;
-
-        public string AppTitle { get; }
-        public string AppDescription { get; }
+        const int ERR_INVALID_PARAMETER = 5;
 
         public Parser()
         {
         }
 
-        public Parser(string appTitle) : this()
-        {
-            AppTitle = appTitle;
-        }
-
-        public Parser(string appTitle, string appDescription) : this(appTitle)
-        {
-            AppDescription = appDescription;
-        }
-
         public int Run(string[] args)
         {
-
-            Console.ForegroundColor = ConsoleColor.White;
-            if (!string.IsNullOrWhiteSpace(AppTitle))
-                Console.WriteLine(AppTitle);
-
-            if (!string.IsNullOrWhiteSpace(AppDescription))
-                Console.WriteLine(AppDescription);
-
-            Console.ResetColor();
 
             // any args?
             if (!args.Any())
@@ -114,6 +93,12 @@ namespace Trogsoft.CommandLine
                 Help(verbName);
                 return ERR_PARAMETER_MISSING;
             }
+            catch (InvalidParameterException ex)
+            {
+                Error($"Invalid value for parameter {ex.ParameterInfo.LongName ?? ex.ParameterInfo.ShortName.ToString()}.");
+                Help(verbName);
+                return ERR_INVALID_PARAMETER;
+            }
 
             if (result is int)
                 return (int)result;
@@ -183,7 +168,21 @@ namespace Trogsoft.CommandLine
 
             if (args.Count() > paraMarker && paraMarker >= 0)
             {
+
                 var value = args[paraMarker + 1];
+
+                if (type.IsEnum)
+                {
+                    if (Enum.TryParse(type, value, ignoreCase: true, out object res))
+                    {
+                        return res;
+                    }
+                    else
+                    {
+                        throw new InvalidParameterException(paraConfig);
+                    }
+                }
+
                 if (isList)
                 {
                     var separator = " ";
