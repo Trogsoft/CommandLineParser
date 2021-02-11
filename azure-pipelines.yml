@@ -12,7 +12,7 @@ steps:
 
 - task: NuGetToolInstaller@1
   inputs:
-    versionSpec: '4.9.1'
+    versionSpec: '5.3.0'
 - task: PowerShell@2
   name: 'setVer'
   inputs:
