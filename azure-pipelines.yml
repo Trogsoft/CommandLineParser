@@ -5,6 +5,7 @@
 
 trigger:
 - develop
+- main
 
 pool: ANDREA
 
@@ -13,11 +14,20 @@ steps:
 - task: NuGetToolInstaller@1
   inputs:
     versionSpec: '5.3.0'
+
 - task: PowerShell@2
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
   name: 'setVer'
   inputs:
     filePath: 'version.ps1'
+    arguments: '-pre'
 
+- task: PowerShell@2
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  name: 'setVer'
+  inputs:
+    filePath: 'version.ps1'
+    
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
