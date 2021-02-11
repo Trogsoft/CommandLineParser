@@ -60,7 +60,17 @@ namespace Trogsoft.CommandLine.Tests
         [Operation("cheese")]
         public int NamedSomethingElse(string cheeseName)
         {
-            return 0;
+            return cheeseName == "cheddar" ? 0 : 9;
+        }
+
+        [Operation("pospara")]
+        [Parameter("path", Position = 0)]
+        public int PositionalParameters(string path, string filename)
+        {
+            var result = 2;
+            if (!string.IsNullOrWhiteSpace(path) && path == "path/path/path") result--;
+            if (!string.IsNullOrWhiteSpace(filename) && filename == "fn.txt") result--;
+            return result;
         }
 
     }

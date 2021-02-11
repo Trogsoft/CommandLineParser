@@ -81,5 +81,11 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(0, parser.Run(new string[] { "testb", "cheese", "--cheeseName", "cheddar" }));
         }
 
+        [Test]
+        public void PositionalParameters()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testb", "pospara", "path/path/path", "--filename", "fn.txt" }));
+        }
+
     }
 }

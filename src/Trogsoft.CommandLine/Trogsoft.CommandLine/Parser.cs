@@ -80,10 +80,12 @@ namespace Trogsoft.CommandLine
             {
                 if (methods.Any(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)))
                 {
+                    usedParameters++;
                     method = methods.SingleOrDefault(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
                 }
                 else if (methods.Any(x => x.op.Name != null && x.op.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)))
                 {
+                    usedParameters++;
                     method = methods.SingleOrDefault(x => x.op.Name != null && x.op.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
                 }
                 else if (methods.Any(x => x.op.IsDefault))
@@ -103,7 +105,7 @@ namespace Trogsoft.CommandLine
             object result = null;
             try
             {
-                var para = getMethodParameters(method, args);
+                var para = getMethodParameters(method, args.Skip(usedParameters).ToArray());
                 result = method.Invoke(vi, para);
             }
             catch (ParameterMissingException ex)
@@ -155,6 +157,14 @@ namespace Trogsoft.CommandLine
 
             var argList = args.ToList();
 
+            if (paraConfig.Position > -1)
+            {
+                if (argList.Count >= paraConfig.Position)
+                {
+                    return argList[paraConfig.Position];
+                }
+            }
+
             var paraMarker = -1;
             if (paraConfig.ShortName != char.MinValue)
                 if (args.Contains($"-{paraConfig.ShortName}"))
@@ -171,7 +181,7 @@ namespace Trogsoft.CommandLine
 
             bool isList = typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
 
-            if (args.Count() > paraMarker && paraMarker >= 1)
+            if (args.Count() > paraMarker && paraMarker >= 0)
             {
                 var value = args[paraMarker + 1];
                 if (isList)
