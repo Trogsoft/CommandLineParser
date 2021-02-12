@@ -7,7 +7,7 @@ namespace Tester
     {
         static int Main(string[] args)
         {
-            var parser = new Parser();
+            var parser = new Parser(true);
 
             return parser.Run(args);
         }

@@ -14,29 +14,90 @@ namespace Trogsoft.CommandLine
         const int ERR_METHOD_NOT_FOUND = 3;
         const int ERR_PARAMETER_MISSING = 4;
         const int ERR_INVALID_PARAMETER = 5;
+        const int ERR_MULTIPLE_DEFAULT_VERBS = 6;
 
-        public Parser()
+        private readonly bool debug;
+        private List<VerbDefinition> verbDefinitions = new List<VerbDefinition>();
+
+        public Parser(bool debug = false)
         {
+
+            this.debug = debug;
+
+            // pre-cache the verbs
+            verbDefinitions = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x =>
+                x.GetTypes()
+                 .Where(y => typeof(Verb).IsAssignableFrom(y) && y.GetCustomAttribute<VerbAttribute>() != null && y.IsPublic && !y.IsAbstract && !y.IsInterface)
+                 .Select(z => new VerbDefinition(z.GetCustomAttribute<VerbAttribute>(), z))
+            ).ToList();
+
+            if (debug)
+            {
+                WriteDebug($"Found {verbDefinitions.Count} verbs.");
+            }
+
+        }
+
+        private void WriteDebug(string v)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("debug: " + v);
+            Console.ResetColor();
+        }
+
+        private int ConfigurationCheck()
+        {
+
+            var defaultVerbCount = verbDefinitions.Count(x => x.Verb.IsDefault);
+            if (defaultVerbCount > 1)
+            {
+                Error("Misconfiguration.  Multiple verbs are configured as the default.");
+                return ERR_MULTIPLE_DEFAULT_VERBS;
+            }
+
+            return 0;
+
         }
 
         public int Run(string[] args)
         {
 
-            // any args?
-            if (!args.Any())
+            int usedParameters = 0;
+            string verbName = null;
+            string operationName = null;
+
+            // a little sanity checking
+            var sanitycheck = ConfigurationCheck();
+            if (sanitycheck > 0)
+                return sanitycheck;
+
+            if (!args.Any() || args.FirstOrDefault().StartsWith("-"))
             {
-                Error("No arguments passed.");
-                Help();
-                return ERR_NO_ARGUMENTS;
+
+                var defaultVerb = verbDefinitions.SingleOrDefault(x => x.Verb.IsDefault);
+                if (defaultVerb != null)
+                {
+                    verbName = defaultVerb.Verb.Name;
+                }
+                else
+                {
+                    Error("No arguments passed.");
+                    Help();
+                    return ERR_NO_ARGUMENTS;
+                }
+
+            }
+            else
+            {
+
+                usedParameters = 1;
+                verbName = args.First();
+                operationName = args.Length > 1 ? args[1] : null;
+
             }
 
-            int usedParameters = 1;
-            var verbName = args.First();
-            var operationName = args.Length > 1 ? args[1] : null;
-
             // find the right type
-            var verbs = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes().Where(y => typeof(Verb).IsAssignableFrom(y) && y.GetCustomAttribute<VerbAttribute>() != null && y.IsPublic && !y.IsInterface && !y.IsAbstract));
-            var verb = verbs.SingleOrDefault(x => x.GetCustomAttribute<VerbAttribute>().Name.Equals(verbName, StringComparison.CurrentCultureIgnoreCase));
+            var verb = verbDefinitions.SingleOrDefault(x => x.Verb.Name.Equals(verbName, StringComparison.CurrentCultureIgnoreCase));
 
             if (verb == null)
             {
@@ -44,7 +105,7 @@ namespace Trogsoft.CommandLine
                 return ERR_UNRECOGNISED_OPERATION;
             }
 
-            var methods = verb.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => (method: x, op: x.GetCustomAttribute<OperationAttribute>())).ToList();
+            var methods = verb.Type.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => (method: x, op: x.GetCustomAttribute<OperationAttribute>())).ToList();
 
             // find the method
             MethodInfo method = null;
@@ -80,7 +141,7 @@ namespace Trogsoft.CommandLine
                 return ERR_METHOD_NOT_FOUND;
             }
 
-            var vi = Activator.CreateInstance(verb);
+            var vi = Activator.CreateInstance(verb.Type);
             object result = null;
             try
             {
@@ -122,13 +183,18 @@ namespace Trogsoft.CommandLine
 
                 if (paraConfig == null)
                     if (para.Name.Length == 1)
-                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue };
+                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
                     else
-                        paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue };
+                        paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
 
                 var type = para.ParameterType;
                 var value = getParameterValue(type, paraConfig, args);
-                paras.Add(value);
+
+                if (value == null)
+                    paras.Add(paraConfig.Default);
+                else if (value != null)
+                    paras.Add(value);
+
             }
 
             if (paras.Any())
@@ -166,7 +232,7 @@ namespace Trogsoft.CommandLine
 
             bool isList = typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
 
-            if (args.Count() > paraMarker && paraMarker >= 0)
+            if (args.Count() > (paraMarker + 1) && paraMarker >= 0)
             {
 
                 var value = args[paraMarker + 1];

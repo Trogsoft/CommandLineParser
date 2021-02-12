@@ -20,7 +20,7 @@ namespace Tester
     //    }
 
     //}
-    [Verb("myverb", HelpText = "Provides access to some operations")]
+    [Verb("myverb", true, HelpText = "Provides access to some operations")]
     public class MyVerb : Verb
     {
         [Operation(true)]
@@ -30,4 +30,11 @@ namespace Tester
             return 0;
         }
     }
+
+    [Verb("newverb", true)]
+    public class NewVerb : Verb
+    {
+
+    }
+
 }

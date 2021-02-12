@@ -82,6 +82,18 @@ namespace Trogsoft.CommandLine.Tests
         }
 
         [Test]
+        public void MissingParameter()
+        {
+            Assert.AreEqual(4, parser.Run(new string[] { "testb", "cheese" }));
+        }
+
+        [Test]
+        public void MissingParameterValue()
+        {
+            Assert.AreEqual(4, parser.Run(new string[] { "testb", "cheese", "--cheeseName" }));
+        }
+
+        [Test]
         public void PositionalParameters()
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testb", "pospara", "path/path/path", "--filename", "fn.txt" }));
@@ -92,6 +104,18 @@ namespace Trogsoft.CommandLine.Tests
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testb", "enumtest", "-e", "chicken" }));
             Assert.AreEqual(5, parser.Run(new string[] { "testb", "enumtest", "-e", "invalid_value" }));
+        }
+
+        [Test]
+        public void DefaultVerb()
+        {
+            Assert.AreEqual(15, parser.Run(new string[] { }));
+        }
+
+        [Test]
+        public void DefaultVerbWithParameters()
+        {
+            Assert.AreEqual(27, parser.Run(new string[] { "-v", "potato" }));
         }
 
     }

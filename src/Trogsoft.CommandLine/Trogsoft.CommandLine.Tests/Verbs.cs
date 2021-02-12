@@ -5,13 +5,20 @@ using System.Text;
 
 namespace Trogsoft.CommandLine.Tests
 {
-    [Verb("test")]
+    [Verb("test", true)]
     public class TestVerb : Verb
     {
         [Operation(true)]
-        public int Default()
+        public int Default(string v = "carrot")
         {
-            return 15;
+            if (v == "carrot")
+            {
+                return 15;
+            }
+            else
+            {
+                return 27;
+            }
         }
 
         [Operation]
