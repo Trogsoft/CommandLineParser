@@ -106,4 +106,36 @@ namespace Trogsoft.CommandLine.Tests
         }
     }
 
+    [Verb("testc")]
+    public class TestCVerb: Verb
+    {
+        [Operation]
+        public int Action(string name)
+        {
+            return 0;
+        }
+    }
+
+    [Verb("testd")]
+    public class TestDVerb : Verb
+    {
+        [Operation(true)]
+        [Parameter("name", Position = 0)]
+        public int Action(string name)
+        {
+            return 0;
+        }
+    }
+
+    [Verb("teste")]
+    public class TestEVerb : Verb
+    {
+        [Operation(true)]
+        [Parameter("name", Position = 0, IsRequired = true)]
+        public int Action(string name)
+        {
+            return 0;
+        }
+    }
+
 }

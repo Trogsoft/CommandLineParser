@@ -210,9 +210,20 @@ namespace Trogsoft.CommandLine
 
             if (paraConfig.Position > -1)
             {
-                if (argList.Count >= paraConfig.Position)
+                if (argList.Count >= (paraConfig.Position + 1))
                 {
                     return argList[paraConfig.Position];
+                }
+                else
+                {
+                    if (paraConfig.IsRequired)
+                    {
+                        throw new ParameterMissingException(paraConfig);
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
             }
 

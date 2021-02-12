@@ -88,6 +88,30 @@ namespace Trogsoft.CommandLine.Tests
         }
 
         [Test]
+        public void MissingOperation()
+        {
+            Assert.AreEqual(3, parser.Run(new string[] { "testc" }));
+        }
+
+        [Test]
+        public void MissingParametersOnDefaultOperation()
+        {
+            Assert.AreEqual(4, parser.Run(new string[] { "testb" }));
+        }
+
+        [Test]
+        public void MissingPositionalParameterOnDefaultOperation()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testd" }));
+        }
+
+        [Test]
+        public void MissingRequiredPositionalParameterOnDefaultOperation()
+        {
+            Assert.AreEqual(4, parser.Run(new string[] { "teste" }));
+        }
+
+        [Test]
         public void MissingParameterValue()
         {
             Assert.AreEqual(4, parser.Run(new string[] { "testb", "cheese", "--cheeseName" }));
