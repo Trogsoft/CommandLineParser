@@ -280,16 +280,28 @@ namespace Trogsoft.CommandLine
                 var resolverType = Activator.CreateInstance(resolver.Converter);
                 var resolveMethod = resolverType.GetType().GetMethod("Resolve");
 
-                var value = resolveMethod.Invoke(resolverType, new object[] { pi.Value });
-                return value;
+                var value = (ResolutionResult)resolveMethod.Invoke(resolverType, new object[] { pi.Value });
+                if (value.Success)
+                {
+                    var resultProperty = value.GetType().GetProperty("Result");
+                    var val = resultProperty.GetValue(value);
+                    return val;
+                }
+                else
+                {
+                    throw new InvalidParameterException(paraConfig);
+                }
 
             }
             else
             {
 
-                return null;
+                if (!pi.Exists)
+                    throw new ParameterMissingException(paraConfig);
+                else
+                    throw new InvalidParameterException(paraConfig);
 
-            } 
+            }
 
         }
 

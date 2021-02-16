@@ -4,18 +4,14 @@ using System.Text;
 
 namespace Trogsoft.CommandLine
 {
-    public class DateTimeResolver : ITypeResolver<DateTime>
+    public class DateTimeResolver : TypeResolver<DateTime>
     {
-        public DateTime Resolve(string value)
+        public override ResolutionResult<DateTime> Resolve(string value)
         {
             if (DateTime.TryParse(value, out DateTime dt))
-            {
-                return dt;
-            }
+                return Success(dt);
             else
-            {
-                throw new Exception();
-            }
+                return InvalidValue();
         }
     }
 }

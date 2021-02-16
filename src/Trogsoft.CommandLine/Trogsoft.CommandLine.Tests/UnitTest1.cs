@@ -161,6 +161,7 @@ namespace Trogsoft.CommandLine.Tests
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testd", "datetime", "--time", "2021-02-15 11:50:01" })); // expects a monday.
             Assert.AreEqual(1, parser.Run(new string[] { "testd", "datetime", "--time", "2021-02-16 11:50:01" })); // expects a monday but we give it tuesday so it returns 1.
+            Assert.AreEqual(5, parser.Run(new string[] { "testd", "datetime", "--time", "2021d-0a2-1a6 11f:5a0:f01" })); // invalid datetime
         }
 
     }
