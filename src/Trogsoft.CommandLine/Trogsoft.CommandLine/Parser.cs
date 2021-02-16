@@ -176,24 +176,50 @@ namespace Trogsoft.CommandLine
 
             foreach (var para in method.GetParameters())
             {
-                var paraConfig = paraConfigList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
 
-                if (paraConfig == null)
-                    paraConfig = paraConfigList.SingleOrDefault(x => !string.IsNullOrWhiteSpace(x.LongName) && x.LongName.Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+                var isListOfSimpleThings = false;
 
-                if (paraConfig == null)
-                    if (para.Name.Length == 1)
-                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
-                    else
-                        paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
+                if (typeof(IEnumerable).IsAssignableFrom(para.ParameterType) && para.ParameterType != typeof(string))
+                {
+                    if (para.ParameterType.IsGenericType)
+                    {
+                        var firstGenericParameter = para.ParameterType.GetGenericArguments().First();
+                        isListOfSimpleThings = (firstGenericParameter.IsPrimitive || firstGenericParameter.IsEnum || firstGenericParameter == typeof(string));
+                    }
+                }
 
-                var type = para.ParameterType;
-                var value = getParameterValue(type, paraConfig, args);
+                if (para.ParameterType.IsPrimitive || para.ParameterType.IsEnum || para.ParameterType == typeof(string) || isListOfSimpleThings)
+                {
 
-                if (value == null)
-                    paras.Add(paraConfig.Default);
-                else if (value != null)
-                    paras.Add(value);
+                    var paraConfig = paraConfigList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (paraConfig == null)
+                        paraConfig = paraConfigList.SingleOrDefault(x => !string.IsNullOrWhiteSpace(x.LongName) && x.LongName.Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+
+                    if (paraConfig == null)
+                        if (para.Name.Length == 1)
+                            paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
+                        else
+                            paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
+
+                    var type = para.ParameterType;
+                    var value = getParameterValue(type, paraConfig, args);
+
+                    if (value == null)
+                        paras.Add(paraConfig.Default);
+                    else if (value != null)
+                        paras.Add(value);
+
+                }
+                else
+                {
+
+                    // some sort of complex model
+                    // todo: check for specific type value resolver
+                    // otherwise...
+                    paras.Add(buildModel(para.ParameterType, args));
+
+                }
 
             }
 
@@ -233,8 +259,8 @@ namespace Trogsoft.CommandLine
                     paraMarker = argList.IndexOf($"-{paraConfig.ShortName}");
 
             if (!string.IsNullOrWhiteSpace(paraConfig.LongName) && paraMarker == -1)
-                if (args.Contains($"--{paraConfig.LongName}"))
-                    paraMarker = argList.IndexOf($"--{paraConfig.LongName}");
+                if (args.Contains($"--{paraConfig.LongName}", StringComparer.CurrentCultureIgnoreCase))
+                    paraMarker = argList.FindIndex(x=>x.Equals($"--{paraConfig.LongName}", StringComparison.CurrentCultureIgnoreCase));
 
             if (type == typeof(bool))
             {
@@ -293,6 +319,46 @@ namespace Trogsoft.CommandLine
                     return null;
                 }
             }
+
+        }
+
+        private object buildModel(Type type, string[] args)
+        {
+
+            var model = Activator.CreateInstance(type);
+            foreach (var prop in type.GetProperties())
+            {
+                if (prop.GetSetMethod() != null)
+                {
+                    bool isRequired = false;
+                    var currentValue = prop.GetValue(model);
+
+                    var paraConfig = prop.GetCustomAttribute<ParameterAttribute>();
+                    if (paraConfig == null)
+                    {
+
+                        if (prop.PropertyType.IsValueType)
+                            isRequired = currentValue.Equals(Activator.CreateInstance(prop.PropertyType));
+                        else
+                            isRequired = currentValue == null;
+
+                        if (prop.Name.Length == 1)
+                            paraConfig = new ParameterAttribute { ShortName = (char)prop.Name.First(), IsRequired = isRequired, Default = isRequired ? null : currentValue };
+                        else
+                            paraConfig = new ParameterAttribute { LongName = prop.Name, IsRequired = isRequired, Default = isRequired ? null : currentValue };
+                    }
+
+                    var propValue = getParameterValue(prop.PropertyType, paraConfig, args);
+
+                    if (propValue == null && !isRequired)
+                        propValue = currentValue;
+
+                    prop.SetValue(model, propValue);
+
+                }
+            }
+
+            return model;
 
         }
 

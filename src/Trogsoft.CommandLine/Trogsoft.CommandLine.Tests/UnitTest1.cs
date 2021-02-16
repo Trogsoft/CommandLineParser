@@ -142,5 +142,19 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(27, parser.Run(new string[] { "-v", "potato" }));
         }
 
+        [Test]
+        public void ModelTest()
+        {
+            Assert.AreEqual(2, parser.Run(new string[] { "testd", "model", "-s", "3", "-e", "5" }));
+        }
+
+        [Test]
+        public void ModelWithOptionalAndDefaultParams()
+        {
+            Assert.AreEqual(6, parser.Run(new string[] { "testd", "model2", "-i", "6", "--stringWithoutDefault", "value" })); // unspecified optional parameter
+            Assert.AreEqual(16, parser.Run(new string[] { "testd", "model2", "-i", "6", "--stringWithDefault", "test", "--stringWithoutDefault", "value" })); // specified optional parameter
+            Assert.AreEqual(4, parser.Run(new string[] { "testd", "model2", "-i", "6" })); // missing parameter
+        }
+
     }
 }

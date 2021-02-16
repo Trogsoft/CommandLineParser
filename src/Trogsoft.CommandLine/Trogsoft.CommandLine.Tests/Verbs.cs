@@ -125,6 +125,20 @@ namespace Trogsoft.CommandLine.Tests
         {
             return 0;
         }
+
+        [Operation("model")]
+        public int ModelAction(TestModel model)
+        {
+            return model.EndNumber - model.StartNumber;
+        }
+
+        [Operation("model2")]
+        public int ModelAction2(TestModel2 model)
+        {
+            if (model.StringWithDefault != "defaultValue") return 16;
+            return model.i;
+        }
+
     }
 
     [Verb("teste")]
@@ -136,6 +150,7 @@ namespace Trogsoft.CommandLine.Tests
         {
             return 0;
         }
+
     }
 
 }
