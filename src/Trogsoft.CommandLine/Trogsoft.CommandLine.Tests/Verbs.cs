@@ -86,6 +86,17 @@ namespace Trogsoft.CommandLine.Tests
             return 0;
         }
 
+        [Operation]
+        public int TestDecimal(decimal val) => (int)Math.Floor(Math.Abs(val));
+
+        [Operation]
+        public int TestFloat(float val) => (int)Math.Floor(Math.Abs(val));
+
+        [Operation]
+        public int TestDouble(double val) => (int)Math.Floor(Math.Abs(val));
+
+
+
     }
 
     public enum EnumTest
@@ -145,6 +156,12 @@ namespace Trogsoft.CommandLine.Tests
             if (time.DayOfWeek == DayOfWeek.Monday) return 0;
             return 1;
         }
+
+        [Operation("uri")]
+        public int UriAction(Uri uri) => 0;
+
+        [Operation("guid")]
+        public int GuidAction(Guid guid) => 0;
 
     }
 

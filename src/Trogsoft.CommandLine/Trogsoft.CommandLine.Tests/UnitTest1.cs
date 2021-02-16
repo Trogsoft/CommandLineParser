@@ -164,5 +164,27 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(5, parser.Run(new string[] { "testd", "datetime", "--time", "2021d-0a2-1a6 11f:5a0:f01" })); // invalid datetime
         }
 
+        [Test]
+        public void TestUri()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testd", "uri", "--uri", "http://www.google.com" }));
+            Assert.AreEqual(5, parser.Run(new string[] { "testd", "uri", "--uri", "dleojg2i33gklwkmoknwrehWE" }));
+        }
+
+        [Test]
+        public void TestGuid()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testd", "guid", "--guid", "D8E12432-49CF-4994-9D2E-4904B9D58B49" }));
+            Assert.AreEqual(5, parser.Run(new string[] { "testd", "guid", "--guid", "dleojg2i33gklwkmoknwrehWE" })) ;  
+        }
+
+        [Test]
+        public void TestDecimal() => Assert.AreEqual(8, parser.Run(new string[] { "testb", "testdecimal", "--val", "8.91582819" }));
+
+        [Test]
+        public void TestFloat() => Assert.AreEqual(8, parser.Run(new string[] { "testb", "testfloat", "--val", "8.91582819" }));
+        [Test]
+        public void TestDouble() => Assert.AreEqual(8, parser.Run(new string[] { "testb", "testdouble", "--val", "8.91582819" }));
+
     }
 }
