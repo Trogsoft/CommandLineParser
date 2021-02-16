@@ -15,9 +15,11 @@ namespace Trogsoft.CommandLine
         const int ERR_PARAMETER_MISSING = 4;
         const int ERR_INVALID_PARAMETER = 5;
         const int ERR_MULTIPLE_DEFAULT_VERBS = 6;
+        const int ERR_RESOLVER_ERROR = 7;
 
         private readonly bool debug;
         private List<VerbDefinition> verbDefinitions = new List<VerbDefinition>();
+        private List<TypeResolverDefinition> typeConverters = new List<TypeResolverDefinition>();
 
         public Parser(bool debug = false)
         {
@@ -31,18 +33,40 @@ namespace Trogsoft.CommandLine
                  .Select(z => new VerbDefinition(z.GetCustomAttribute<VerbAttribute>(), z))
             ).ToList();
 
-            if (debug)
+            // precache type converters
+            var typeHandlers = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x =>
+                x.GetTypes()
+                .Where(y => typeof(ITypeResolver).IsAssignableFrom(y) && y.IsPublic && !y.IsAbstract && !y.IsInterface)
+            ).ToList();
+
+            typeHandlers.ToList().ForEach(x =>
             {
-                WriteDebug($"Found {verbDefinitions.Count} verbs.");
-            }
+                var tr = new TypeResolverDefinition();
+                tr.Converter = x;
+                foreach (var i in x.GetInterfaces())
+                {
+                    if (i.Name.StartsWith(nameof(ITypeResolver)) && i.IsGenericType)
+                    {
+                        tr.DestinationType = i.GetGenericArguments().First();
+                    }
+                }
+                typeConverters.Add(tr);
+            });
+
+            WriteDebug($"Found {verbDefinitions.Count} verbs.");
+            WriteDebug($"Found {typeConverters.Count} type resolvers.");
+            typeConverters.ForEach(x => WriteDebug($"Type Resolver: {x.Converter}; converts to {x.DestinationType}"));
 
         }
 
         private void WriteDebug(string v)
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("debug: " + v);
-            Console.ResetColor();
+            if (debug)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("debug: " + v);
+                Console.ResetColor();
+            }
         }
 
         private int ConfigurationCheck()
@@ -53,6 +77,12 @@ namespace Trogsoft.CommandLine
             {
                 Error("Misconfiguration.  Multiple verbs are configured as the default.");
                 return ERR_MULTIPLE_DEFAULT_VERBS;
+            }
+
+            foreach (var badResolver in typeConverters.Where(x => x.DestinationType == null))
+            {
+                Error($"Type Resolver {badResolver.Converter.FullName} does not have a valid destination type.");
+                return ERR_RESOLVER_ERROR;
             }
 
             return 0;
@@ -171,11 +201,21 @@ namespace Trogsoft.CommandLine
         private object[] getMethodParameters(MethodInfo method, string[] args)
         {
             List<object> paras = new List<object>();
-
             var paraConfigList = method.GetCustomAttributes<ParameterAttribute>();
 
             foreach (var para in method.GetParameters())
             {
+
+                var paraConfig = paraConfigList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+
+                if (paraConfig == null)
+                    paraConfig = paraConfigList.SingleOrDefault(x => !string.IsNullOrWhiteSpace(x.LongName) && x.LongName.Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+
+                if (paraConfig == null)
+                    if (para.Name.Length == 1)
+                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
+                    else
+                        paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
 
                 var isListOfSimpleThings = false;
 
@@ -191,17 +231,6 @@ namespace Trogsoft.CommandLine
                 if (para.ParameterType.IsPrimitive || para.ParameterType.IsEnum || para.ParameterType == typeof(string) || isListOfSimpleThings)
                 {
 
-                    var paraConfig = paraConfigList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
-
-                    if (paraConfig == null)
-                        paraConfig = paraConfigList.SingleOrDefault(x => !string.IsNullOrWhiteSpace(x.LongName) && x.LongName.Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
-
-                    if (paraConfig == null)
-                        if (para.Name.Length == 1)
-                            paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
-                        else
-                            paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
-
                     var type = para.ParameterType;
                     var value = getParameterValue(type, paraConfig, args);
 
@@ -211,12 +240,20 @@ namespace Trogsoft.CommandLine
                         paras.Add(value);
 
                 }
+                else if (typeConverters.Any(x => x.DestinationType == para.ParameterType))
+                {
+
+                    var value = resolveValue(para.ParameterType, paraConfig, args);
+                    if (value == null)
+                        paras.Add(paraConfig.Default);
+                    else
+                        paras.Add(value);
+
+                }
                 else
                 {
 
-                    // some sort of complex model
-                    // todo: check for specific type value resolver
-                    // otherwise...
+                    // not a primitive, enum, string or list thereof
                     paras.Add(buildModel(para.ParameterType, args));
 
                 }
@@ -229,16 +266,49 @@ namespace Trogsoft.CommandLine
             return null;
         }
 
-        private object getParameterValue(Type type, ParameterAttribute paraConfig, string[] args)
+        private object resolveValue(Type parameterType, ParameterAttribute paraConfig, string[] args)
+        {
+
+            var resolver = typeConverters.FirstOrDefault(x => x.DestinationType == parameterType);
+            if (resolver == null)
+                return null;
+
+            var pi = getParameterInfo(paraConfig, args);
+            if (pi.Exists && pi.HasValue)
+            {
+
+                var resolverType = Activator.CreateInstance(resolver.Converter);
+                var resolveMethod = resolverType.GetType().GetMethod("Resolve");
+
+                var value = resolveMethod.Invoke(resolverType, new object[] { pi.Value });
+                return value;
+
+            }
+            else
+            {
+
+                return null;
+
+            } 
+
+        }
+
+        private CommandLineParameterInfo getParameterInfo(ParameterAttribute paraConfig, string[] args)
         {
 
             var argList = args.ToList();
 
             if (paraConfig.Position > -1)
             {
-                if (argList.Count >= (paraConfig.Position + 1))
+                if (argList.Count > paraConfig.Position)
                 {
-                    return argList[paraConfig.Position];
+                    return new CommandLineParameterInfo
+                    {
+                        Exists = true,
+                        HasValue = true,
+                        Position = paraConfig.Position,
+                        Value = argList[paraConfig.Position]
+                    };
                 }
                 else
                 {
@@ -248,7 +318,11 @@ namespace Trogsoft.CommandLine
                     }
                     else
                     {
-                        return null;
+                        return new CommandLineParameterInfo
+                        {
+                            Exists = false,
+                            HasValue = false,
+                        };
                     }
                 }
             }
@@ -260,19 +334,37 @@ namespace Trogsoft.CommandLine
 
             if (!string.IsNullOrWhiteSpace(paraConfig.LongName) && paraMarker == -1)
                 if (args.Contains($"--{paraConfig.LongName}", StringComparer.CurrentCultureIgnoreCase))
-                    paraMarker = argList.FindIndex(x=>x.Equals($"--{paraConfig.LongName}", StringComparison.CurrentCultureIgnoreCase));
+                    paraMarker = argList.FindIndex(x => x.Equals($"--{paraConfig.LongName}", StringComparison.CurrentCultureIgnoreCase));
 
+            var result = new CommandLineParameterInfo
+            {
+                Position = paraMarker,
+                Exists = paraMarker > -1,
+                HasValue = argList.Count > (paraMarker + 1) && paraMarker >= 0,
+            };
+
+            if (result.Exists && result.HasValue)
+                result.Value = args[paraMarker + 1];
+
+            return result;
+
+        }
+
+        private object getParameterValue(Type type, ParameterAttribute paraConfig, string[] args)
+        {
+
+            var pi = getParameterInfo(paraConfig, args);
             if (type == typeof(bool))
             {
-                return paraMarker > -1;
+                return pi.Exists;
             }
 
             bool isList = typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
 
-            if (args.Count() > (paraMarker + 1) && paraMarker >= 0)
+            if (pi.HasValue)
             {
 
-                var value = args[paraMarker + 1];
+                var value = pi.Value;
 
                 if (type.IsEnum)
                 {
@@ -321,6 +413,7 @@ namespace Trogsoft.CommandLine
             }
 
         }
+
 
         private object buildModel(Type type, string[] args)
         {

@@ -156,5 +156,12 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(4, parser.Run(new string[] { "testd", "model2", "-i", "6" })); // missing parameter
         }
 
+        [Test]
+        public void ResolveDateTime()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testd", "datetime", "--time", "2021-02-15 11:50:01" })); // expects a monday.
+            Assert.AreEqual(1, parser.Run(new string[] { "testd", "datetime", "--time", "2021-02-16 11:50:01" })); // expects a monday but we give it tuesday so it returns 1.
+        }
+
     }
 }

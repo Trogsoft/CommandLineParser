@@ -139,6 +139,13 @@ namespace Trogsoft.CommandLine.Tests
             return model.i;
         }
 
+        [Operation("datetime")]
+        public int DateTimeaction(DateTime time)
+        {
+            if (time.DayOfWeek == DayOfWeek.Monday) return 0;
+            return 1;
+        }
+
     }
 
     [Verb("teste")]
