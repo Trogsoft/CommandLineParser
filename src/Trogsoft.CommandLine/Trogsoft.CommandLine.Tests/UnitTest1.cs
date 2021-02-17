@@ -186,5 +186,13 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void TestDouble() => Assert.AreEqual(8, parser.Run(new string[] { "testb", "testdouble", "--val", "8.91582819" }));
 
+        [Test]
+        public void ComplexModel()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testd", "complexmodel", "--guid", "12E198EC-9C9E-44B9-9AC2-251E6157F850", "--time", "2021-02-15 11:50:01" }));
+            Assert.AreEqual(1, parser.Run(new string[] { "testd", "complexmodel", "--guid", "12E198EC-9C9E-44B9-9AC2-251E6157F850", "--time", "2021-02-17 11:50:01" }));
+            Assert.AreEqual(0, parser.Run(new string[] { "testd", "complexmodel", "--time", "2021-02-15 11:50:01" }));
+        }
+
     }
 }

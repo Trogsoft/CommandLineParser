@@ -295,11 +295,14 @@ namespace Trogsoft.CommandLine
             }
             else
             {
-
-                if (!pi.Exists)
-                    throw new ParameterMissingException(paraConfig);
-                else
-                    throw new InvalidParameterException(paraConfig);
+                if (paraConfig.IsRequired)
+                {
+                    if (!pi.Exists)
+                        throw new ParameterMissingException(paraConfig);
+                    else
+                        throw new InvalidParameterException(paraConfig);
+                }
+                return null;
 
             }
 
@@ -453,7 +456,15 @@ namespace Trogsoft.CommandLine
                             paraConfig = new ParameterAttribute { LongName = prop.Name, IsRequired = isRequired, Default = isRequired ? null : currentValue };
                     }
 
-                    var propValue = getParameterValue(prop.PropertyType, paraConfig, args);
+                    object propValue;
+                    if (typeConverters.Any(x => x.DestinationType == prop.PropertyType))
+                    {
+                        propValue = resolveValue(prop.PropertyType, paraConfig, args);
+                    }
+                    else
+                    {
+                        propValue = getParameterValue(prop.PropertyType, paraConfig, args);
+                    }
 
                     if (propValue == null && !isRequired)
                         propValue = currentValue;

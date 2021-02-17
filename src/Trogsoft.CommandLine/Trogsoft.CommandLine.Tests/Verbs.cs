@@ -150,6 +150,14 @@ namespace Trogsoft.CommandLine.Tests
             return model.i;
         }
 
+        [Operation("complexmodel")]
+        public int ComplexModelTest(ComplexModel model)
+        {
+            var guid = new Guid("12E198EC-9C9E-44B9-9AC2-251E6157F850");
+            if (model.Time.DayOfWeek == DayOfWeek.Monday && model.Guid == guid) return 0;
+            return 1;
+        }
+
         [Operation("datetime")]
         public int DateTimeaction(DateTime time)
         {
