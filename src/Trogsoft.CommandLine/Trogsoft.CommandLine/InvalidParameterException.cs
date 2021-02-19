@@ -7,17 +7,10 @@ namespace Trogsoft.CommandLine
     internal class InvalidParameterException : Exception
     {
 
-        public InvalidParameterException()
-        {
-        }
-
-        public InvalidParameterException(ParameterAttribute paraConfig)
+        public InvalidParameterException(ParameterAttribute paraConfig) : base($"The parameter {paraConfig.LongName ?? paraConfig.ShortName.ToString()} contains an invalid value.")
         {
             ParameterInfo = paraConfig;
-        }
-
-        public InvalidParameterException(string message) : base(message)
-        {
+            HResult = ParserErrorCodes.ERR_INVALID_PARAMETER;
         }
 
         public InvalidParameterException(string message, Exception innerException) : base(message, innerException)

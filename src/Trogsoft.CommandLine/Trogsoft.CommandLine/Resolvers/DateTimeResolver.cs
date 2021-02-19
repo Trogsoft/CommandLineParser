@@ -6,12 +6,12 @@ namespace Trogsoft.CommandLine
 {
     public class DateTimeResolver : TypeResolver<DateTime>
     {
-        public override ResolutionResult<DateTime> Resolve(string value)
+        public override DateTime Resolve(string value)
         {
             if (DateTime.TryParse(value, out DateTime dt))
-                return Success(dt);
+                return dt;
             else
-                return InvalidValue();
+                throw new ResolverException("Unable to parse datetime.", ParserErrorCodes.ERR_RESOLVER_ERROR);
         }
     }
 }

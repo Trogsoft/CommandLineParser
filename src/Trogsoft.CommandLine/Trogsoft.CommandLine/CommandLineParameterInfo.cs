@@ -1,6 +1,6 @@
 ﻿namespace Trogsoft.CommandLine
 {
-    public class CommandLineParameterInfo
+    internal class CommandLineParameterInfo
     {
         public bool Exists { get; set; }
         public int Position { get; set; }

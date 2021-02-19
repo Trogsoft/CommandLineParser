@@ -11,6 +11,6 @@ namespace Trogsoft.CommandLine
 
     public interface ITypeResolver<T> : ITypeResolver
     {
-        ResolutionResult<T> Resolve(string value);
+        T Resolve(string value);
     }
 }

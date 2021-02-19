@@ -5,10 +5,11 @@ using System.Text;
 
 namespace Trogsoft.CommandLine.Tests
 {
-    [Verb("test", true)]
+    [Verb("test", true, HelpText = "Some simple numeric tests")]
     public class TestVerb : Verb
     {
-        [Operation(true)]
+        [Operation(true, HelpText = "If the parameter is carrot, returns 15, otherwise 27.")]
+        [Parameter('v', HelpText = "Carrot, or not.")]
         public int Default(string v = "carrot")
         {
             if (v == "carrot")
@@ -21,20 +22,20 @@ namespace Trogsoft.CommandLine.Tests
             }
         }
 
-        [Operation]
+        [Operation(HelpText = "Returns 16.")]
         public int ActionA()
         {
             return 16;
         }
 
-        [Operation]
+        [Operation(HelpText = "Returns the numer you feed to it.")]
         [Parameter('a', HelpText = "Pick a number between 1 and about 2 billion", IsRequired = true)]
         public int ActionWithParameter(int a)
         {
             return a;
         }
 
-        [Operation]
+        [Operation(HelpText = "Returns the number you feed to it, but the parameter is explicit.")]
         public int ActionWithUnconfiguredParameter(int a)
         {
             return a;
@@ -42,36 +43,36 @@ namespace Trogsoft.CommandLine.Tests
 
     }
 
-    [Verb("testb")]
+    [Verb("testb", HelpText = "Some additional tests with lists and cheese.")]
     public class SecondTestVerb : Verb
     {
-        [Operation(true)]
+        [Operation(true, HelpText = "Returns the number you pass to it.")]
         public int Default(int a)
         {
             return a;
         }
 
-        [Operation]
-        [Parameter('i', "items", ListSeparator = ",")]
+        [Operation(HelpText = "Returns number of items in a comma separated list.")]
+        [Parameter('i', "items", ListSeparator = ",", HelpText = "A comma separated list of items.")]
         public int CountItemsInList(List<string> items)
         {
             return items.Count;
         }
 
-        [Operation]
+        [Operation(HelpText = "Returns the sum of numeric items in a list.")]
         public int ListError1(List<int> items)
         {
             return items.Sum();
         }
 
-        [Operation("cheese")]
+        [Operation("cheese", HelpText = "Cheddar is worth 0; every other cheese 9.")]
         public int NamedSomethingElse(string cheeseName)
         {
             return cheeseName == "cheddar" ? 0 : 9;
         }
 
-        [Operation("pospara")]
-        [Parameter("path", Position = 0)]
+        [Operation("pospara", HelpText = "Testing positional parameters.")]
+        [Parameter("path", Position = 0, HelpText = "A path.", IsRequired = true)]
         public int PositionalParameters(string path, string filename)
         {
             var result = 2;
@@ -170,6 +171,12 @@ namespace Trogsoft.CommandLine.Tests
 
         [Operation("guid")]
         public int GuidAction(Guid guid) => 0;
+
+        [Operation("listofdecimals")]
+        public int ListOfDecimals(List<decimal> decimals)
+        {
+            return (int)Math.Floor(Math.Abs(decimals.Sum()));
+        }
 
     }
 

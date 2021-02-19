@@ -6,12 +6,12 @@ namespace Trogsoft.CommandLine.Resolvers
 {
     public class DecimalResolver : TypeResolver<decimal>
     {
-        public override ResolutionResult<decimal> Resolve(string value)
+        public override decimal Resolve(string value)
         {
             if (decimal.TryParse(value, out decimal result))
-                return Success(result);
+                return result;
             else
-                return InvalidValue();
+                throw new ResolverException("Unable to parse decimal.", ParserErrorCodes.ERR_RESOLVER_ERROR);
         }
     }
 }

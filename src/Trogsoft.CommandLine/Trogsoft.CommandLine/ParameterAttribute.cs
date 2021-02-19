@@ -10,11 +10,13 @@ namespace Trogsoft.CommandLine
         public char ShortName { get; set; }
         public string LongName { get; set; }
         public string HelpText { get; set; }
-        public bool IsRequired { get; set; }
+        public bool IsRequired { get; set; } = true;
         public object Default { get; set; }
         public string Parameter { get; set; }
         public string ListSeparator { get; set; } = " ";
         public int Position { get; set; } = -1;
+        internal Type Type { get; set; }
+        internal bool isSimpleType { get; set; }
 
         public ParameterAttribute()
         {

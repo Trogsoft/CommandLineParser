@@ -25,6 +25,7 @@ namespace Trogsoft.CommandLine
             IsDefault = isDefault;
         }
 
+        public string HelpText { get; set; }
         public bool IsDefault { get; } = false;
         public string Name { get; }
     }

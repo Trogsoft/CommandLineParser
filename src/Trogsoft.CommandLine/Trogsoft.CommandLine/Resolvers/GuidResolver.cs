@@ -6,12 +6,12 @@ namespace Trogsoft.CommandLine
 {
     public class GuidResolver : TypeResolver<Guid>
     {
-        public override ResolutionResult<Guid> Resolve(string value)
+        public override Guid Resolve(string value)
         {
             if (Guid.TryParse(value, out Guid result))
-                return Success(result);
+                return result;
             else
-                return InvalidValue();
+                throw new ResolverException("Unable to parse GUID.", ParserErrorCodes.ERR_RESOLVER_ERROR);
         }
     }
 }

@@ -53,7 +53,7 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void ListTypeError()
         {
-            Assert.Throws<FormatException>(() => parser.Run(new string[] { "testb", "ListError1", "--items", "a,b,c" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_INVALID_PARAMETER, parser.Run(new string[] { "testb", "ListError1", "--items", "a,b,c" }));
         }
 
         [Test(Description = "Tests the unconfigured parameter named 'items' as well as the appropriate casting.  This action adds together each number in the list.")]
@@ -72,7 +72,7 @@ namespace Trogsoft.CommandLine.Tests
         public void TestGreet2()
         {
             // Missing parameter here.
-            Assert.AreEqual(4, parser.Run(new string[] { "greet", "Dave" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_INVALID_OPERATION, parser.Run(new string[] { "greet", "Dave" }));
         }
 
         [Test]
@@ -84,37 +84,43 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void MissingParameter()
         {
-            Assert.AreEqual(4, parser.Run(new string[] { "testb", "cheese" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_PARAMETER_MISSING, parser.Run(new string[] { "testb", "cheese" }));
         }
 
         [Test]
         public void MissingOperation()
         {
-            Assert.AreEqual(3, parser.Run(new string[] { "testc" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_INVALID_OPERATION, parser.Run(new string[] { "testc" }));
         }
 
         [Test]
         public void MissingParametersOnDefaultOperation()
         {
-            Assert.AreEqual(4, parser.Run(new string[] { "testb" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_PARAMETER_MISSING, parser.Run(new string[] { "testb" }));
+        }
+
+        [Test]
+        public void PositionalParametersOnDefaultOperation()
+        {
+            Assert.AreEqual(0, parser.Run(new string[] { "testd", "clive" }));
         }
 
         [Test]
         public void MissingPositionalParameterOnDefaultOperation()
         {
-            Assert.AreEqual(0, parser.Run(new string[] { "testd" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_PARAMETER_MISSING, parser.Run(new string[] { "testd" }));
         }
 
         [Test]
         public void MissingRequiredPositionalParameterOnDefaultOperation()
         {
-            Assert.AreEqual(4, parser.Run(new string[] { "teste" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_PARAMETER_MISSING, parser.Run(new string[] { "teste" }));
         }
 
         [Test]
         public void MissingParameterValue()
         {
-            Assert.AreEqual(4, parser.Run(new string[] { "testb", "cheese", "--cheeseName" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_PARAMETER_MISSING, parser.Run(new string[] { "testb", "cheese", "--cheeseName" }));
         }
 
         [Test]
@@ -127,7 +133,7 @@ namespace Trogsoft.CommandLine.Tests
         public void Enum()
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testb", "enumtest", "-e", "chicken" }));
-            Assert.AreEqual(5, parser.Run(new string[] { "testb", "enumtest", "-e", "invalid_value" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_INVALID_PARAMETER, parser.Run(new string[] { "testb", "enumtest", "-e", "invalid_value" }));
         }
 
         [Test]
@@ -153,7 +159,7 @@ namespace Trogsoft.CommandLine.Tests
         {
             Assert.AreEqual(6, parser.Run(new string[] { "testd", "model2", "-i", "6", "--stringWithoutDefault", "value" })); // unspecified optional parameter
             Assert.AreEqual(16, parser.Run(new string[] { "testd", "model2", "-i", "6", "--stringWithDefault", "test", "--stringWithoutDefault", "value" })); // specified optional parameter
-            Assert.AreEqual(4, parser.Run(new string[] { "testd", "model2", "-i", "6" })); // missing parameter
+            Assert.AreEqual(ParserErrorCodes.ERR_PARAMETER_MISSING, parser.Run(new string[] { "testd", "model2", "-i", "6" })); // missing parameter
         }
 
         [Test]
@@ -161,21 +167,21 @@ namespace Trogsoft.CommandLine.Tests
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testd", "datetime", "--time", "2021-02-15 11:50:01" })); // expects a monday.
             Assert.AreEqual(1, parser.Run(new string[] { "testd", "datetime", "--time", "2021-02-16 11:50:01" })); // expects a monday but we give it tuesday so it returns 1.
-            Assert.AreEqual(5, parser.Run(new string[] { "testd", "datetime", "--time", "2021d-0a2-1a6 11f:5a0:f01" })); // invalid datetime
+            Assert.AreEqual(ParserErrorCodes.ERR_RESOLVER_ERROR, parser.Run(new string[] { "testd", "datetime", "--time", "2021d-0a2-1a6 11f:5a0:f01" })); // invalid datetime
         }
 
         [Test]
         public void TestUri()
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testd", "uri", "--uri", "http://www.google.com" }));
-            Assert.AreEqual(5, parser.Run(new string[] { "testd", "uri", "--uri", "dleojg2i33gklwkmoknwrehWE" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_RESOLVER_ERROR, parser.Run(new string[] { "testd", "uri", "--uri", "dleojg2i33gklwkmoknwrehWE" }));
         }
 
         [Test]
         public void TestGuid()
         {
             Assert.AreEqual(0, parser.Run(new string[] { "testd", "guid", "--guid", "D8E12432-49CF-4994-9D2E-4904B9D58B49" }));
-            Assert.AreEqual(5, parser.Run(new string[] { "testd", "guid", "--guid", "dleojg2i33gklwkmoknwrehWE" })) ;  
+            Assert.AreEqual(ParserErrorCodes.ERR_RESOLVER_ERROR, parser.Run(new string[] { "testd", "guid", "--guid", "dleojg2i33gklwkmoknwrehWE" }));
         }
 
         [Test]
@@ -192,6 +198,23 @@ namespace Trogsoft.CommandLine.Tests
             Assert.AreEqual(0, parser.Run(new string[] { "testd", "complexmodel", "--guid", "12E198EC-9C9E-44B9-9AC2-251E6157F850", "--time", "2021-02-15 11:50:01" }));
             Assert.AreEqual(1, parser.Run(new string[] { "testd", "complexmodel", "--guid", "12E198EC-9C9E-44B9-9AC2-251E6157F850", "--time", "2021-02-17 11:50:01" }));
             Assert.AreEqual(0, parser.Run(new string[] { "testd", "complexmodel", "--time", "2021-02-15 11:50:01" }));
+        }
+
+        [Test]
+        public void HelpTest()
+        {
+            Assert.DoesNotThrow(() => parser.Run(new string[] { "--help" }));
+            Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "doesnotexist" }));
+            Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "greet" }));
+            Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "testb", "doesnotexist" }));
+            Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "testb", "testfloat" }));
+            Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "testd", "datetime" }));
+        }
+
+        [Test]
+        public void ListOfDecimals()
+        {
+            Assert.AreEqual(15, parser.Run(new string[] { "testd", "listofdecimals", "--decimals", "5.2 6.3 4.1" }));
         }
 
     }

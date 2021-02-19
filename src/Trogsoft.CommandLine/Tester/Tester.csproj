@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Trogsoft.CommandLine.Tests\Trogsoft.CommandLine.Tests.csproj" />
     <ProjectReference Include="..\Trogsoft.CommandLine\Trogsoft.CommandLine.csproj" />
   </ItemGroup>
 

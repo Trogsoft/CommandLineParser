@@ -1,5 +1,6 @@
 ﻿using System;
 using Trogsoft.CommandLine;
+using Trogsoft.CommandLine.Tests;
 
 namespace Tester
 {
@@ -7,8 +8,8 @@ namespace Tester
     {
         static int Main(string[] args)
         {
-            var parser = new Parser(true);
-
+            TestModel tm = new TestModel();
+            var parser = new Parser();
             return parser.Run(args);
         }
     }

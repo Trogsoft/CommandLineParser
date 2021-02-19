@@ -6,12 +6,12 @@ namespace Trogsoft.CommandLine
 {
     public class UriResolver : TypeResolver<Uri>
     {
-        public override ResolutionResult<Uri> Resolve(string value)
+        public override Uri Resolve(string value)
         {
             if (Uri.TryCreate(value, UriKind.Absolute, out Uri uri))
-                return Success(uri);
+                return uri;
             else
-                return InvalidValue();
+                throw new ResolverException("Unable to parse URI.", ParserErrorCodes.ERR_RESOLVER_ERROR);
         }
     }
 }

@@ -3,63 +3,52 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace Trogsoft.CommandLine
 {
     public class Parser
     {
 
-        const int ERR_NO_ARGUMENTS = 1;
-        const int ERR_UNRECOGNISED_OPERATION = 2;
-        const int ERR_METHOD_NOT_FOUND = 3;
-        const int ERR_PARAMETER_MISSING = 4;
-        const int ERR_INVALID_PARAMETER = 5;
+        //const int ERR_NO_ARGUMENTS = 1;
+        //const int ERR_UNRECOGNISED_OPERATION = 2;
+        //const int ERR_METHOD_NOT_FOUND = 3;
+        //const int ERR_PARAMETER_MISSING = 4;
+        //const int ERR_INVALID_PARAMETER = 5;
         const int ERR_MULTIPLE_DEFAULT_VERBS = 6;
         const int ERR_RESOLVER_ERROR = 7;
+        const int ERR_VERB_DOES_NOT_EXIST = 8;
 
         private readonly bool debug;
         private List<VerbDefinition> verbDefinitions = new List<VerbDefinition>();
-        private List<TypeResolverDefinition> typeConverters = new List<TypeResolverDefinition>();
 
         public Parser(bool debug = false)
         {
 
             this.debug = debug;
 
-            // pre-cache the verbs
+            loadVerbs();
+            loadTypeConverters();
+
+        }
+
+        private void loadVerbs()
+        {
             verbDefinitions = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x =>
                 x.GetTypes()
                  .Where(y => typeof(Verb).IsAssignableFrom(y) && y.GetCustomAttribute<VerbAttribute>() != null && y.IsPublic && !y.IsAbstract && !y.IsInterface)
                  .Select(z => new VerbDefinition(z.GetCustomAttribute<VerbAttribute>(), z))
             ).ToList();
 
-            // precache type converters
-            var typeHandlers = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x =>
-                x.GetTypes()
-                .Where(y => typeof(ITypeResolver).IsAssignableFrom(y) && y.IsPublic && !y.IsAbstract && !y.IsInterface)
-            ).ToList();
-
-            typeHandlers.ToList().ForEach(x =>
-            {
-                var tr = new TypeResolverDefinition();
-                tr.Converter = x;
-                foreach (var i in x.GetInterfaces())
-                {
-                    if (i.Name.StartsWith(nameof(ITypeResolver)) && i.IsGenericType)
-                    {
-                        tr.DestinationType = i.GetGenericArguments().First();
-                    }
-                }
-                typeConverters.Add(tr);
-            });
-
-            WriteDebug($"Found {verbDefinitions.Count} verbs.");
-            WriteDebug($"Found {typeConverters.Count} type resolvers.");
-            typeConverters.ForEach(x => WriteDebug($"Type Resolver: {x.Converter}; converts to {x.DestinationType}"));
-
+            writeDebug($"Found {verbDefinitions.Count} verbs.");
         }
 
-        private void WriteDebug(string v)
+        private void loadTypeConverters()
+        {
+            writeDebug($"Found {TypeResolver.Count()} type resolvers.");
+        }
+
+        private void writeDebug(string v)
         {
             if (debug)
             {
@@ -69,7 +58,7 @@ namespace Trogsoft.CommandLine
             }
         }
 
-        private int ConfigurationCheck()
+        private int configurationCheck()
         {
 
             var defaultVerbCount = verbDefinitions.Count(x => x.Verb.IsDefault);
@@ -79,11 +68,11 @@ namespace Trogsoft.CommandLine
                 return ERR_MULTIPLE_DEFAULT_VERBS;
             }
 
-            foreach (var badResolver in typeConverters.Where(x => x.DestinationType == null))
-            {
-                Error($"Type Resolver {badResolver.Converter.FullName} does not have a valid destination type.");
-                return ERR_RESOLVER_ERROR;
-            }
+            //foreach (var badResolver in typeConverters.Where(x => x.DestinationType == null))
+            //{
+            //    Error($"Type Resolver {badResolver.Converter.FullName} does not have a valid destination type.");
+            //    return ERR_RESOLVER_ERROR;
+            //}
 
             return 0;
 
@@ -95,100 +84,69 @@ namespace Trogsoft.CommandLine
             int usedParameters = 0;
             string verbName = null;
             string operationName = null;
+            VerbDefinition verb;
+            MethodInfo operation;
 
             // a little sanity checking
-            var sanitycheck = ConfigurationCheck();
+            var sanitycheck = configurationCheck();
             if (sanitycheck > 0)
                 return sanitycheck;
 
-            if (!args.Any() || args.FirstOrDefault().StartsWith("-"))
+            // help
+            if (helpCalled(args))
+                return 0;
+
+            try
             {
-
-                var defaultVerb = verbDefinitions.SingleOrDefault(x => x.Verb.IsDefault);
-                if (defaultVerb != null)
-                {
-                    verbName = defaultVerb.Verb.Name;
-                }
-                else
-                {
-                    Error("No arguments passed.");
-                    Help();
-                    return ERR_NO_ARGUMENTS;
-                }
-
+                verb = getVerb(args, out int usedArgs);
+                verbName = verb.Verb.Name;
+                usedParameters += usedArgs;
             }
-            else
+            catch (Exception ex)
             {
-
-                usedParameters = 1;
-                verbName = args.First();
-                operationName = args.Length > 1 ? args[1] : null;
-
+                Error(ex.Message);
+                return ex.HResult;
             }
 
-            // find the right type
-            var verb = verbDefinitions.SingleOrDefault(x => x.Verb.Name.Equals(verbName, StringComparison.CurrentCultureIgnoreCase));
-
-            if (verb == null)
+            try
             {
-                Error($"{args.First()} is not a recognised operation.");
-                return ERR_UNRECOGNISED_OPERATION;
+                operation = getOperation(verb, args.Skip(usedParameters).ToArray(), out int usedArgs);
+                usedParameters += usedArgs;
+                operationName = operation.Name;
+            }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+                return ex.HResult;
             }
 
-            var methods = verb.Type.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => (method: x, op: x.GetCustomAttribute<OperationAttribute>())).ToList();
-
-            // find the method
-            MethodInfo method = null;
-            if (operationName == null)
-            {
-                if (methods.Any(x => x.op.IsDefault))
-                {
-                    method = methods.SingleOrDefault(x => x.op.IsDefault).method;
-                }
-            }
-            else
-            {
-                if (methods.Any(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)))
-                {
-                    usedParameters++;
-                    method = methods.SingleOrDefault(x => x.method.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
-                }
-                else if (methods.Any(x => x.op.Name != null && x.op.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)))
-                {
-                    usedParameters++;
-                    method = methods.SingleOrDefault(x => x.op.Name != null && x.op.Name.Equals(operationName, StringComparison.CurrentCultureIgnoreCase)).method;
-                }
-                else if (methods.Any(x => x.op.IsDefault))
-                {
-                    method = methods.SingleOrDefault(x => x.op.IsDefault).method;
-                }
-            }
-
-            if (method == null)
-            {
-                Error("No such action.");
-                Help();
-                return ERR_METHOD_NOT_FOUND;
-            }
-
-            var vi = Activator.CreateInstance(verb.Type);
+            var activeVerb = Activator.CreateInstance(verb.Type);
             object result = null;
             try
             {
-                var para = getMethodParameters(method, args.Skip(usedParameters).ToArray());
-                result = method.Invoke(vi, para);
+                var parameterList = getOperationParameterValues(operation, args.Skip(usedParameters).ToArray());
+                result = operation.Invoke(activeVerb, parameterList.ToArray());
             }
-            catch (ParameterMissingException ex)
+            catch (TargetInvocationException ex)
             {
-                Error($"Missing parameter: {ex.ParameterInfo.LongName ?? ex.ParameterInfo.ShortName.ToString()}");
-                Help(verbName);
-                return ERR_PARAMETER_MISSING;
+                if (ex.InnerException != null)
+                {
+                    Error(ex.InnerException.Message);
+                    Help(verbName, operationName);
+                    return ex.InnerException.HResult;
+                }
+                else
+                {
+                    Error(ex.Message);
+                    Help(verbName, operationName);
+                    return ex.HResult;
+                }
             }
-            catch (InvalidParameterException ex)
+            catch (Exception ex)
             {
-                Error($"Invalid value for parameter {ex.ParameterInfo.LongName ?? ex.ParameterInfo.ShortName.ToString()}.");
-                Help(verbName);
-                return ERR_INVALID_PARAMETER;
+                Error(ex.Message);
+                Help(verbName, operationName);
+                return ex.HResult;
             }
 
             if (result is int)
@@ -198,78 +156,292 @@ namespace Trogsoft.CommandLine
 
         }
 
-        private object[] getMethodParameters(MethodInfo method, string[] args)
+        private MethodInfo getOperation(VerbDefinition verb, string[] args, out int usedArgs)
         {
-            List<object> paras = new List<object>();
-            var paraConfigList = method.GetCustomAttributes<ParameterAttribute>();
+
+            usedArgs = 0;
+            var methods = verb.Type.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => new { method = x, op = x.GetCustomAttribute<OperationAttribute>() }).ToList();
+
+            // if there are no arguments or the first argument starts with a hyphen, we assume a default operation.
+            var defaultOperation = methods.SingleOrDefault(x => x.op.IsDefault);
+            if (!args.Any() || args.First().StartsWith("-"))
+            {
+                if (defaultOperation != null)
+                    return defaultOperation.method;
+                else
+                    throw new UnspecifiedOperationException(verb.Type.Name, "@default");
+            }
+
+            var firstArg = args.First();
+            var op = methods.SingleOrDefault(x => string.Equals(x.op.Name, firstArg, StringComparison.CurrentCultureIgnoreCase) || x.method.Name.Equals(firstArg, StringComparison.CurrentCultureIgnoreCase));
+            if (op == null)
+            {
+                // no operation with the same name as the first argument.  See if the default operation on this verb has a positional parameter.
+                var methodParameters = getMethodParameterInfo(defaultOperation.method);
+                if (methodParameters.Any(x => x.Position == 0))
+                {
+                    return defaultOperation.method;
+                }
+                throw new UnspecifiedOperationException(verb.Type.Name, firstArg);
+            }
+
+            usedArgs = 1;
+            return op.method;
+
+        }
+
+        private VerbDefinition getVerb(string[] args, out int usedArgs)
+        {
+
+            usedArgs = 0;
+
+            // no args, see if there's a default verb
+            if (!args.Any() || args.First().StartsWith("-"))
+            {
+                var defaultVerb = verbDefinitions.SingleOrDefault(x => x.Verb.IsDefault);
+                if (defaultVerb != null)
+                    return defaultVerb;
+                else
+                    throw new UnspecifiedVerbException("@default");
+            }
+
+            // see if the first arg is a valid verb
+            var firstArg = args.First();
+            var verb = verbDefinitions.SingleOrDefault(x => x.Verb.Name.Equals(firstArg, StringComparison.CurrentCultureIgnoreCase));
+            if (verb == null)
+                throw new UnspecifiedVerbException(firstArg);
+
+            usedArgs = 1;
+            return verb;
+
+        }
+
+        private bool helpCalled(string[] args)
+        {
+            if (args.Any() && args.FirstOrDefault().Equals("--help", StringComparison.CurrentCultureIgnoreCase))
+            {
+
+                if (args.Length == 1)
+                    Help();
+                else if (args.Length == 2)
+                    Help(args[1]);
+                else if (args.Length >= 3)
+                    Help(args[1], args[2]);
+
+                return true;
+
+            }
+            return false;
+        }
+
+        private List<Parameter> getOperationParameterRequirements(MethodInfo method)
+        {
+
+            var pr = new List<Parameter>();
+            var paraAttrList = method.GetCustomAttributes<ParameterAttribute>();
 
             foreach (var para in method.GetParameters())
             {
+                var paraConfig = paraAttrList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase) || string.Equals(x.LongName, para.Name, StringComparison.CurrentCultureIgnoreCase));
+                Parameter p = Parameter.Create(para, paraConfig);
+                pr.Add(p);
+            }
 
-                var paraConfig = paraConfigList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+            int simpleParameters = pr.Count(x => x is SimpleParameter || x is ResolvedParameter);
+            int modelParameters = pr.Count(x => x is ModelParameter);
 
-                if (paraConfig == null)
-                    paraConfig = paraConfigList.SingleOrDefault(x => !string.IsNullOrWhiteSpace(x.LongName) && x.LongName.Equals(para.Name, StringComparison.CurrentCultureIgnoreCase));
+            if (simpleParameters > 0 && modelParameters > 0)
+                throw new MultipleIncompatibleParameterTypesException(method);
 
-                if (paraConfig == null)
-                    if (para.Name.Length == 1)
-                        paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First(), IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
-                    else
-                        paraConfig = new ParameterAttribute { LongName = para.Name, IsRequired = !para.HasDefaultValue, Default = (para.HasDefaultValue ? para.DefaultValue : null) };
+            if (modelParameters > 1)
+                throw new MultipleModelParametersException(method);
 
-                var isListOfSimpleThings = false;
+            return pr;
 
-                if (typeof(IEnumerable).IsAssignableFrom(para.ParameterType) && para.ParameterType != typeof(string))
+        }
+
+        private List<object> getOperationParameterValues(MethodInfo method, string[] args)
+        {
+
+            List<object> parameterValues = new List<object>();
+            var parameterRequirements = getOperationParameterRequirements(method);
+            foreach (var para in parameterRequirements)
+            {
+                if (para is SimpleParameter si)
                 {
-                    if (para.ParameterType.IsGenericType)
+                    CommandLineParameterInfo pi = getParameterValue(si, args);
+                    object typedValue = getTypedParameterValue(si, pi);
+                    if (typedValue == null)
+                        typedValue = si.ParameterInfo.Default;
+                    parameterValues.Add(typedValue);
+                }
+                else if (para is ModelParameter mp)
+                {
+                    parameterValues.Add(buildModel(mp.ModelType, args));
+                }
+            }
+
+            return parameterValues;
+
+        }
+
+        private object getTypedParameterValue(SimpleParameter si, CommandLineParameterInfo pi)
+        {
+            if (si.ParameterType == typeof(bool))
+                return pi.Exists;
+
+            bool isList = typeof(IEnumerable).IsAssignableFrom(si.ParameterType) && si.ParameterType != typeof(string);
+
+            if (pi.HasValue)
+            {
+                var value = pi.Value;
+
+                if (si.ParameterType.IsEnum)
+                {
+                    if (Enum.TryParse(si.ParameterType, value, ignoreCase: true, out object res))
+                        return res;
+                    else
+                        throw new InvalidParameterException(si.ParameterInfo);
+                }
+
+                if (si is ResolvedParameter rp)
+                {
+                    return TypeResolver.Resolve(value, si.ParameterType);
+                }
+
+                if (isList)
+                {
+
+                    var separator = " ";
+                    if (!string.IsNullOrWhiteSpace(si.ParameterInfo.ListSeparator))
+                        separator = si.ParameterInfo.ListSeparator;
+
+                    var splitValue = value.Split(new string[] { separator }, StringSplitOptions.RemoveEmptyEntries);
+
+                    var underlyingType = si.ParameterType.GetGenericArguments().FirstOrDefault();
+                    var constructedListType = typeof(List<>).MakeGenericType(underlyingType);
+                    var constructedList = (IList)Activator.CreateInstance(constructedListType);
+
+                    try
                     {
-                        var firstGenericParameter = para.ParameterType.GetGenericArguments().First();
-                        isListOfSimpleThings = (firstGenericParameter.IsPrimitive || firstGenericParameter.IsEnum || firstGenericParameter == typeof(string));
+                        if (Parameter.IsSimpleType(underlyingType))
+                        {
+                            splitValue.ToList().ForEach(x => constructedList.Add(Convert.ChangeType(x, underlyingType)));
+                        }
+                        else if (TypeResolver.IsResolvableType(underlyingType))
+                        {
+                            splitValue.ToList().ForEach(x => constructedList.Add(TypeResolver.Resolve(x, underlyingType)));
+                        }
                     }
-                }
+                    catch (FormatException)
+                    {
+                        throw new InvalidParameterException(si.ParameterInfo);
+                    }
 
-                if (para.ParameterType.IsPrimitive || para.ParameterType.IsEnum || para.ParameterType == typeof(string) || isListOfSimpleThings)
-                {
-
-                    var type = para.ParameterType;
-                    var value = getParameterValue(type, paraConfig, args);
-
-                    if (value == null)
-                        paras.Add(paraConfig.Default);
-                    else if (value != null)
-                        paras.Add(value);
-
-                }
-                else if (typeConverters.Any(x => x.DestinationType == para.ParameterType))
-                {
-
-                    var value = resolveValue(para.ParameterType, paraConfig, args);
-                    if (value == null)
-                        paras.Add(paraConfig.Default);
-                    else
-                        paras.Add(value);
+                    return constructedList;
 
                 }
                 else
                 {
-
-                    // not a primitive, enum, string or list thereof
-                    paras.Add(buildModel(para.ParameterType, args));
-
+                    return Convert.ChangeType(value, si.ParameterType);
                 }
 
             }
+            else
+            {
+                if (si.ParameterInfo.IsRequired)
+                {
+                    throw new ParameterMissingException(si.ParameterInfo);
+                }
+                else
+                {
+                    return null;
+                }
+            }
 
-            if (paras.Any())
-                return paras.ToArray();
+        }
 
-            return null;
+        private List<ParameterAttribute> getMethodParameterInfo(MethodInfo method, bool enumerateModelProperties = false)
+        {
+
+            var paraConfigList = method.GetCustomAttributes<ParameterAttribute>();
+
+            List<ParameterAttribute> pi = new List<ParameterAttribute>();
+            foreach (var para in method.GetParameters())
+            {
+                if (Parameter.IsSimpleType(para.ParameterType) || TypeResolver.IsResolvableType(para.ParameterType))
+                {
+                    var paraConfig = paraConfigList.SingleOrDefault(x => x.ShortName.ToString().Equals(para.Name, StringComparison.CurrentCultureIgnoreCase) || string.Equals(x.LongName, para.Name, StringComparison.CurrentCultureIgnoreCase));
+                    if (paraConfig == null)
+                        if (para.Name.Length == 1)
+                            paraConfig = new ParameterAttribute { ShortName = (char)para.Name.First() };
+                        else
+                            paraConfig = new ParameterAttribute { LongName = para.Name };
+
+                    if (para.HasDefaultValue)
+                    {
+                        paraConfig.IsRequired = false;
+                        paraConfig.Default = para.DefaultValue;
+                    }
+
+                    paraConfig.isSimpleType = Parameter.IsSimpleType(para.ParameterType);
+                    paraConfig.Type = para.ParameterType;
+
+                    pi.Add(paraConfig);
+                }
+                else
+                {
+                    if (enumerateModelProperties)
+                    {
+                        var model = Activator.CreateInstance(para.ParameterType);
+                        foreach (var prop in para.ParameterType.GetProperties().Where(x => x.GetSetMethod() != null))
+                        {
+                            bool isRequired = false;
+                            var currentValue = prop.GetValue(model);
+
+                            var paraConfig = prop.GetCustomAttribute<ParameterAttribute>();
+
+                            if (prop.PropertyType.IsValueType)
+                                isRequired = currentValue.Equals(Activator.CreateInstance(prop.PropertyType));
+                            else
+                                isRequired = currentValue == null;
+
+                            if (paraConfig == null)
+                            {
+                                if (prop.Name.Length == 1)
+                                    paraConfig = new ParameterAttribute { ShortName = (char)prop.Name.First() };
+                                else
+                                    paraConfig = new ParameterAttribute { LongName = prop.Name };
+                            }
+
+                            paraConfig.isSimpleType = false;
+                            paraConfig.Type = para.ParameterType;
+
+                            paraConfig.IsRequired = isRequired;
+                            if (!paraConfig.IsRequired)
+                                paraConfig.Default = currentValue;
+
+                            pi.Add(paraConfig);
+                        }
+                    }
+                    else
+                    {
+                        var paraConfig = new ParameterAttribute { isSimpleType = false, Type = para.ParameterType };
+                        pi.Add(paraConfig);
+                    }
+                }
+            }
+            return pi;
+
         }
 
         private object resolveValue(Type parameterType, ParameterAttribute paraConfig, string[] args)
         {
 
-            var resolver = typeConverters.FirstOrDefault(x => x.DestinationType == parameterType);
+            if (!TypeResolver.IsResolvableType(parameterType))
+                throw new UnresolvableTypeException();
+
+            var resolver = TypeResolver.GetResolverForType(parameterType);
             if (resolver == null)
                 return null;
 
@@ -277,20 +449,8 @@ namespace Trogsoft.CommandLine
             if (pi.Exists && pi.HasValue)
             {
 
-                var resolverType = Activator.CreateInstance(resolver.Converter);
-                var resolveMethod = resolverType.GetType().GetMethod("Resolve");
-
-                var value = (ResolutionResult)resolveMethod.Invoke(resolverType, new object[] { pi.Value });
-                if (value.Success)
-                {
-                    var resultProperty = value.GetType().GetProperty("Result");
-                    var val = resultProperty.GetValue(value);
-                    return val;
-                }
-                else
-                {
-                    throw new InvalidParameterException(paraConfig);
-                }
+                var value = TypeResolver.Resolve(pi.Value, parameterType);
+                return value;
 
             }
             else
@@ -305,6 +465,65 @@ namespace Trogsoft.CommandLine
                 return null;
 
             }
+
+        }
+
+        internal CommandLineParameterInfo getParameterValue(SimpleParameter si, string[] args)
+        {
+
+            var argList = args.ToList();
+
+            // Check for positional parameters
+            if (si.ParameterInfo.Position > -1)
+            {
+                if (argList.Count > si.ParameterInfo.Position)
+                {
+                    return new CommandLineParameterInfo
+                    {
+                        Exists = true,
+                        HasValue = true,
+                        Position = si.ParameterInfo.Position,
+                        Value = argList[si.ParameterInfo.Position]
+                    };
+                }
+                else
+                {
+                    if (si.ParameterInfo.IsRequired)
+                    {
+                        throw new ParameterMissingException(si.ParameterInfo);
+                    }
+                    else
+                    {
+                        return new CommandLineParameterInfo
+                        {
+                            Exists = false,
+                            HasValue = false
+                        };
+                    }
+                }
+            }
+
+            // Normal parameters
+            var paraMarker = -1;
+            if (si.ParameterInfo.ShortName != char.MinValue)
+                if (args.Contains($"-{si.ParameterInfo.ShortName}"))
+                    paraMarker = argList.IndexOf($"-{si.ParameterInfo.ShortName}");
+
+            if (!string.IsNullOrWhiteSpace(si.ParameterInfo.LongName) && paraMarker == -1)
+                if (args.Contains($"--{si.ParameterInfo.LongName}", StringComparer.CurrentCultureIgnoreCase))
+                    paraMarker = argList.FindIndex(x => x.Equals($"--{si.ParameterInfo.LongName}", StringComparison.CurrentCultureIgnoreCase));
+
+            var result = new CommandLineParameterInfo
+            {
+                Position = paraMarker,
+                Exists = paraMarker > -1,
+                HasValue = argList.Count > (paraMarker + 1) && paraMarker >= 0,
+            };
+
+            if (result.Exists && result.HasValue)
+                result.Value = args[paraMarker + 1];
+
+            return result;
 
         }
 
@@ -405,7 +624,14 @@ namespace Trogsoft.CommandLine
                     var constructedListType = typeof(List<>).MakeGenericType(underlyingType);
                     var constructedList = (IList)Activator.CreateInstance(constructedListType);
 
-                    splitValue.ToList().ForEach(x => constructedList.Add(Convert.ChangeType(x, underlyingType)));
+                    try
+                    {
+                        splitValue.ToList().ForEach(x => constructedList.Add(Convert.ChangeType(x, underlyingType)));
+                    }
+                    catch (FormatException)
+                    {
+                        throw new InvalidParameterException(paraConfig);
+                    }
 
                     return constructedList;
 
@@ -428,7 +654,6 @@ namespace Trogsoft.CommandLine
             }
 
         }
-
 
         private object buildModel(Type type, string[] args)
         {
@@ -457,7 +682,7 @@ namespace Trogsoft.CommandLine
                     }
 
                     object propValue;
-                    if (typeConverters.Any(x => x.DestinationType == prop.PropertyType))
+                    if (TypeResolver.IsResolvableType(prop.PropertyType))
                     {
                         propValue = resolveValue(prop.PropertyType, paraConfig, args);
                     }
@@ -478,76 +703,233 @@ namespace Trogsoft.CommandLine
 
         }
 
+        private string getCommandTemplate(string verb = null, string action = null)
+        {
+            var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower();
+
+            StringBuilder sb = new StringBuilder();
+            var hasDefaultVerb = verbDefinitions.Any(x => x.Verb.IsDefault);
+            var defaultVerb = verbDefinitions.SingleOrDefault(x => x.Verb.IsDefault);
+            sb.Append(processName);
+            sb.Append(" ");
+            if (hasDefaultVerb)
+                sb.Append(verb == null ? "[verb]" : verb);
+            else
+                sb.Append("verb");
+
+            sb.Append(" ");
+            if (hasDefaultVerb)
+            {
+                var defaultVerbOperations = defaultVerb.Type.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => x.GetCustomAttribute<OperationAttribute>());
+                var defaultVerbHasDefaultOperation = defaultVerbOperations.Any(x => x.IsDefault);
+
+                if (defaultVerbHasDefaultOperation)
+                    sb.Append(action == null ? "[operation]" : action);
+                else
+                    sb.Append("operation");
+            }
+            else
+            {
+                sb.Append("[operation]");
+            }
+
+            sb.Append(" [parameters]");
+
+            return sb.ToString();
+
+        }
+
         private void Help(string verb = null, string action = null)
         {
 
-            var verbs = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(x => x.GetTypes().Where(y => typeof(Verb).IsAssignableFrom(y) && y.IsPublic && !y.IsInterface && !y.IsAbstract && y.GetCustomAttribute<VerbAttribute>() != null)
-                    .Select(y => (verbInfo: y.GetCustomAttribute<VerbAttribute>(), verbType: y)));
+            var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower();
 
-            if (!verbs.Any())
+            if (!verbDefinitions.Any())
             {
                 Error("This command contains no verbs.");
                 return;
             }
 
-            var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower();
             Console.WriteLine();
             Console.WriteLine("Help");
             Console.WriteLine();
             Console.WriteLine("Usage: ");
-            Console.WriteLine($"  {processName} verb [action] [parameters]");
+            Console.WriteLine($"  {getCommandTemplate(verb, action)}");
             Console.WriteLine();
 
-            if (verb == null)
+            if (verb == null) // show all verbs unless one is specified
             {
                 Console.WriteLine("Possible verbs:");
                 Console.WriteLine();
-                var maxVerbWidth = verbs.Max(y => y.verbInfo.Name.Length) + 2;
+                var maxVerbWidth = verbDefinitions.Max(y => y.Verb.Name.Length) + 2;
                 var helpWidth = 80 - maxVerbWidth - 2;
 
-                foreach (var v in verbs.OrderBy(x => x.verbInfo.Name))
+                foreach (var v in verbDefinitions.OrderBy(x => x.Verb.Name))
                 {
                     Console.ForegroundColor = ConsoleColor.White;
-                    Console.Write(v.verbInfo.Name.ToLower().PadLeft(maxVerbWidth) + "  ");
+                    Console.Write(v.Verb.Name.ToLower().PadLeft(maxVerbWidth) + "  ");
                     Console.ResetColor();
-                    if (!string.IsNullOrWhiteSpace(v.verbInfo.HelpText))
-                    {
-                        var helpWords = v.verbInfo.HelpText.Split();
-                        var wCount = 0;
-                        var line = "";
-                        List<string> lines = new List<string>();
 
-                        foreach (var word in helpWords)
-                        {
-                            line += word + " ";
-                            wCount += word.Length + 1;
-                            if (wCount >= helpWidth)
-                            {
-                                wCount = 0;
-                                lines.Add(line);
-                                line = "";
-                            }
-                        }
+                    renderHelpText(v.Verb.HelpText, helpWidth, maxVerbWidth);
 
-                        if (!string.IsNullOrWhiteSpace(line))
-                            lines.Add(line);
-
-                        foreach (var l in lines)
-                        {
-                            Console.WriteLine(l.Trim());
-                            Console.Write(new string(Enumerable.Range(0, maxVerbWidth + 2).Select(x => ' ').ToArray()));
-                        }
-
-                    }
-                    Console.WriteLine();
                     Console.WriteLine();
                 }
-                Console.WriteLine($"For more specific help, try {processName} help verb");
+                Console.WriteLine();
+                Console.WriteLine($"For more specific help, try: {processName} --help verb");
+            }
+            else if (verb != null && action == null)
+            {
+
+                var selectedVerb = verbDefinitions.SingleOrDefault(x => x.Verb.Name.Equals(verb, StringComparison.CurrentCultureIgnoreCase));
+                if (selectedVerb == null)
+                {
+                    Error($"No such verb: {verb}.");
+                    return;
+                }
+
+                var vTitle = selectedVerb.Verb.Name ?? verb;
+                Console.Write($"{vTitle}");
+                if (!string.IsNullOrWhiteSpace(selectedVerb.Verb.HelpText)) Console.WriteLine($": {selectedVerb.Verb.HelpText}");
+                Console.WriteLine();
+                Console.WriteLine($"{vTitle} Operations:");
+                Console.WriteLine();
+
+                var operations = selectedVerb.Type.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => new { Method = x, Info = x.GetCustomAttribute<OperationAttribute>() });
+                var maxOpWidth = operations.Max(x => x.Info.Name?.Length ?? x.Method.Name.Length) + 2;
+                var maxWidth = 80 - maxOpWidth - 2;
+
+                foreach (var operation in operations)
+                {
+
+                    var name = operation.Info.Name ?? operation.Method.Name;
+
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.Write(name.ToLower().PadLeft(maxOpWidth) + "  ");
+                    Console.ResetColor();
+
+                    renderHelpText(operation.Info.HelpText, maxWidth, maxOpWidth);
+
+                    Console.WriteLine();
+
+                }
+
+                Console.WriteLine();
+                Console.WriteLine($"For more specific help, try: {processName} --help " + verb + " operation");
+
+            }
+            else
+            {
+
+                var selectedVerb = verbDefinitions.SingleOrDefault(x => x.Verb.Name.Equals(verb, StringComparison.CurrentCultureIgnoreCase));
+                if (selectedVerb == null)
+                {
+                    Error($"No such verb: {verb}.");
+                    return;
+                }
+
+                var operations = selectedVerb.Type.GetMethods().Where(x => x.GetCustomAttribute<OperationAttribute>() != null).Select(x => new { Method = x, Info = x.GetCustomAttribute<OperationAttribute>() });
+                var operation = operations.SingleOrDefault(x => (x.Info.Name != null && x.Info.Name.Equals(action, StringComparison.CurrentCultureIgnoreCase)) || x.Method.Name.Equals(action, StringComparison.CurrentCultureIgnoreCase));
+                if (operation == null)
+                {
+                    Error($"No such operation: {action}.");
+                    return;
+                }
+
+                Console.WriteLine(operation.Info.Name ?? operation.Method.Name);
+
+                if (!string.IsNullOrWhiteSpace(operation.Info.HelpText))
+                    Console.WriteLine(operation.Info.HelpText);
+
+                if (operation.Method.GetParameters().Any())
+                {
+
+                    Console.WriteLine("Parameters:");
+                    Console.WriteLine();
+
+                    var parameters = getMethodParameterInfo(operation.Method);
+                    var maxParaWidth = parameters.Max(x => string.IsNullOrWhiteSpace(x.LongName) ? 1 : x.LongName.Length) + 10;
+                    var maxWidth = 80 - maxParaWidth - 2;
+
+                    foreach (var para in parameters)
+                    {
+                        Console.ForegroundColor = ConsoleColor.White;
+                        var p = "  ";
+
+                        if (para.ShortName > 0)
+                            p += ($"-{para.ShortName} ");
+
+                        if (!string.IsNullOrWhiteSpace(para.LongName))
+                            p += ($"--{para.LongName} ");
+
+                        p += ("  ");
+                        Console.Write(p.PadLeft(maxParaWidth));
+                        Console.ResetColor();
+
+                        if (string.IsNullOrWhiteSpace(para.HelpText))
+                            para.HelpText = "";
+
+                        List<string> bits = new List<string>();
+                        bits.Add(para.IsRequired ? "Required" : "Optional");
+                        if (para.Position > -1) bits.Add("Position: " + para.Position);
+                        if (!string.IsNullOrWhiteSpace(para.ListSeparator)) bits.Add("Separator: " + (para.ListSeparator == " " ? "(space)" : para.ListSeparator));
+                        if (para.Default != null) bits.Add("Default Value: " + para.Default);
+
+                        if (!string.IsNullOrWhiteSpace(para.HelpText))
+                            bits.Add(para.HelpText);
+
+                        renderHelpText(string.Join("; ", bits), maxWidth, maxParaWidth);
+
+                        Console.WriteLine();
+
+                    }
+
+
+                }
+                else
+                {
+
+                    Console.WriteLine("This operation has no parameters.");
+
+                }
+
             }
 
             Console.WriteLine();
 
+        }
+
+        private void renderHelpText(string helpText, int helpWidth, int indentWidth)
+        {
+            if (!string.IsNullOrWhiteSpace(helpText))
+            {
+                var helpWords = helpText.Split();
+                var wCount = 0;
+                var line = "";
+                List<string> lines = new List<string>();
+
+                foreach (var word in helpWords)
+                {
+                    line += word + " ";
+                    wCount += word.Length + 1;
+                    if (wCount >= helpWidth)
+                    {
+                        wCount = 0;
+                        lines.Add(line);
+                        line = "";
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(line))
+                    lines.Add(line);
+
+                foreach (var l in lines)
+                {
+                    Console.WriteLine(l.Trim());
+                    if (l != lines.Last())
+                        Console.Write(new string(Enumerable.Range(0, indentWidth + 2).Select(x => ' ').ToArray()));
+                }
+
+            }
         }
 
         private void Error(string message)
@@ -555,11 +937,6 @@ namespace Trogsoft.CommandLine
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(message);
             Console.ResetColor();
-        }
-
-        public ParseResult Parse(string[] args)
-        {
-            return new ParseResult();
         }
 
     }
