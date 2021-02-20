@@ -190,6 +190,19 @@ namespace Trogsoft.CommandLine.Tests
             return 0;
         }
 
+        [Operation]
+        public int Longwrap()
+        {
+            WriteTextBlock("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque non magna risus. Integer vestibulum lobortis sapien ut cursus. Maecenas vestibulum felis suscipit felis pretium molestie. Proin in sagittis magna. Quisque turpis massa, tempus nec dolor sit amet, sagittis volutpat enim. Vestibulum tempor consectetur orci in gravida. Curabitur auctor tortor et sapien hendrerit bibendum. Cras lobortis et nibh vitae hendrerit. Vivamus enim libero, sollicitudin id lacus sit amet, lacinia hendrerit leo.");
+            Console.WriteLine();
+            Console.Write("           ");
+            WriteTextBlock("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque non magna risus. Integer vestibulum lobortis sapien ut cursus. Maecenas vestibulum felis suscipit felis pretium molestie. Proin in sagittis magna. Quisque turpis massa, tempus nec dolor sit amet, sagittis volutpat enim. Vestibulum tempor consectetur orci in gravida. Curabitur auctor tortor et sapien hendrerit bibendum. Cras lobortis et nibh vitae hendrerit. Vivamus enim libero, sollicitudin id lacus sit amet, lacinia hendrerit leo.");
+            Console.WriteLine();
+            Console.Write("                                                                   something: ");
+            WriteTextBlock("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque non magna risus. Integer vestibulum lobortis sapien ut cursus. Maecenas vestibulum felis suscipit felis pretium molestie. Proin in sagittis magna. Quisque turpis massa, tempus nec dolor sit amet, sagittis volutpat enim. Vestibulum tempor consectetur orci in gravida. Curabitur auctor tortor et sapien hendrerit bibendum. Cras lobortis et nibh vitae hendrerit. Vivamus enim libero, sollicitudin id lacus sit amet, lacinia hendrerit leo.");
+            return 0;
+        }
+
     }
 
 }
