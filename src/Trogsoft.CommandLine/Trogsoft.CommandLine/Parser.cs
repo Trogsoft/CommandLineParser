@@ -59,12 +59,6 @@ namespace Trogsoft.CommandLine
                 return ParserErrorCodes.ERR_MULTIPLE_DEFAULT_VERBS;
             }
 
-            //foreach (var badResolver in typeConverters.Where(x => x.DestinationType == null))
-            //{
-            //    Error($"Type Resolver {badResolver.Converter.FullName} does not have a valid destination type.");
-            //    return ERR_RESOLVER_ERROR;
-            //}
-
             return 0;
 
         }
