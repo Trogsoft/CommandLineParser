@@ -10,15 +10,6 @@ namespace Trogsoft.CommandLine
     public class Parser
     {
 
-        //const int ERR_NO_ARGUMENTS = 1;
-        //const int ERR_UNRECOGNISED_OPERATION = 2;
-        //const int ERR_METHOD_NOT_FOUND = 3;
-        //const int ERR_PARAMETER_MISSING = 4;
-        //const int ERR_INVALID_PARAMETER = 5;
-        const int ERR_MULTIPLE_DEFAULT_VERBS = 6;
-        const int ERR_RESOLVER_ERROR = 7;
-        const int ERR_VERB_DOES_NOT_EXIST = 8;
-
         private readonly bool debug;
         private List<VerbDefinition> verbDefinitions = new List<VerbDefinition>();
 
@@ -65,7 +56,7 @@ namespace Trogsoft.CommandLine
             if (defaultVerbCount > 1)
             {
                 Error("Misconfiguration.  Multiple verbs are configured as the default.");
-                return ERR_MULTIPLE_DEFAULT_VERBS;
+                return ParserErrorCodes.ERR_MULTIPLE_DEFAULT_VERBS;
             }
 
             //foreach (var badResolver in typeConverters.Where(x => x.DestinationType == null))
