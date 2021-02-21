@@ -10,8 +10,8 @@
     <icon>images\icon.png</icon>
   </metadata>
   <files>
-    <file src="Trogsoft.CommandLine\bin\Debug\netstandard2.1\Trogsoft.CommandLine.dll" target="lib/netstandard2.1" />
-    <file src="Trogsoft.CommandLine\bin\Debug\netstandard2.1\Trogsoft.CommandLine.dll" target="lib/net5.0" />
+    <file src="Trogsoft.CommandLine\bin\Release\netstandard2.1\Trogsoft.CommandLine.dll" target="lib/netstandard2.1" />
+    <file src="Trogsoft.CommandLine\bin\Release\netstandard2.1\Trogsoft.CommandLine.dll" target="lib/net5.0" />
     <file src="icon.png" target="images\" />
   </files>
 </package>
