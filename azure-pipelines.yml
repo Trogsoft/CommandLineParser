@@ -38,18 +38,47 @@ steps:
     projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
     arguments: '--no-restore /p:Configuration=Debug /p:Version=$(setVer.ver) /p:AssemblyVersion=$(setVer.ver) /p:FileVersion=$(setVer.ver)'
 
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build release'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  inputs:
+    command: 'build'
+    projects: 'src/Trogsoft.CommandLine/Trogsoft.CommandLine.sln'
+    arguments: '--no-restore /p:Configuration=Release /p:Version=$(setVer.ver) /p:AssemblyVersion=$(setVer.ver) /p:FileVersion=$(setVer.ver)'
+
 - task: NuGetCommand@2
+  displayName: 'nuget package debug'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
   inputs:
     command: 'pack'
-    packagesToPack: '**/*.nuspec'
+    packagesToPack: '**/*.debug.nuspec'
     configuration: 'Debug'
     versioningScheme: 'byEnvVar'
     versionEnvVar: 'setVer.ngver'
 
 - task: NuGetCommand@2
+  displayName: 'nuget package release'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  inputs:
+    command: 'pack'
+    packagesToPack: '**/*.release.nuspec'
+    configuration: 'Release'
+    versioningScheme: 'byEnvVar'
+    versionEnvVar: 'setVer.ngver'
+
+- task: NuGetCommand@2
+  displayName: 'nuget push debug'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
     nuGetFeedType: 'internal'
     publishVstsFeed: '48274686-e251-4703-8b54-41d6861884b9'
     allowPackageConflicts: true
+
+- task: CmdLine@2
+  displayName: 'nuget package release'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  inputs:
+    script: 'dotnet push $(Build.ArtifactStagingDirectory)/*.nupkg -k $(ngapi) -s https://api.nuget.org/v3/index.json'
+    
