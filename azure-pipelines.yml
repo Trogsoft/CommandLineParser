@@ -81,6 +81,5 @@ steps:
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   inputs:
     command: custom
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
-    arguments: '-ApiKey $(ngapi) -Source https://api.nuget.org/v3/index.json'
+    arguments: 'push $(Build.ArtifactStagingDirectory)/**/*.nupkg -ApiKey $(ngapi) -Source https://api.nuget.org/v3/index.json'
      
