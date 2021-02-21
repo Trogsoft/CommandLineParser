@@ -76,9 +76,11 @@ steps:
     publishVstsFeed: '48274686-e251-4703-8b54-41d6861884b9'
     allowPackageConflicts: true
 
-- task: CmdLine@2
+- task: NuGetCommand@2
   displayName: 'nuget package release'
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   inputs:
-    script: 'dotnet push $(Build.ArtifactStagingDirectory)/*.nupkg -k $(ngapi) -s https://api.nuget.org/v3/index.json'
-    
+    command: custom
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    arguments: '-ApiKey $(ngapi) -Source https://api.nuget.org/v3/index.json'
+     
