@@ -255,14 +255,15 @@ namespace Trogsoft.CommandLine
                 if (para is SimpleParameter si)
                 {
                     CommandLineParameterInfo pi = getParameterValue(si, args);
-                    object typedValue = getTypedParameterValue(si, pi);
+                    object typedValue = getTypedParameterValue(si.ParameterInfo, pi);
                     if (typedValue == null)
                         typedValue = si.ParameterInfo.Default;
                     parameterValues.Add(typedValue);
                 }
                 else if (para is ModelParameter mp)
                 {
-                    parameterValues.Add(buildModel(mp.ModelType, args));
+                    parameterValues.Add(buildModel(mp, args));
+                    //parameterValues.Add(buildModel(mp.ModelType, args));
                 }
             }
 
@@ -270,40 +271,40 @@ namespace Trogsoft.CommandLine
 
         }
 
-        private object getTypedParameterValue(SimpleParameter si, CommandLineParameterInfo pi)
+        private object getTypedParameterValue(ParameterAttribute para, CommandLineParameterInfo pi)
         {
-            if (si.ParameterType == typeof(bool))
+            if (para.Type == typeof(bool))
                 return pi.Exists;
 
-            bool isList = typeof(IEnumerable).IsAssignableFrom(si.ParameterType) && si.ParameterType != typeof(string);
+            bool isList = typeof(IEnumerable).IsAssignableFrom(para.Type) && para.Type != typeof(string);
 
             if (pi.HasValue)
             {
                 var value = pi.Value;
 
-                if (si.ParameterType.IsEnum)
+                if (para.Type.IsEnum)
                 {
-                    if (Enum.TryParse(si.ParameterType, value, ignoreCase: true, out object res))
+                    if (Enum.TryParse(para.Type, value, ignoreCase: true, out object res))
                         return res;
                     else
-                        throw new InvalidParameterException(si.ParameterInfo);
+                        throw new InvalidParameterException(para);
                 }
 
-                if (si is ResolvedParameter rp)
+                if (TypeResolver.IsResolvableType(para.Type))
                 {
-                    return TypeResolver.Resolve(value, si.ParameterType);
+                    return TypeResolver.Resolve(value, para.Type);
                 }
 
                 if (isList)
                 {
 
                     var separator = " ";
-                    if (!string.IsNullOrWhiteSpace(si.ParameterInfo.ListSeparator))
-                        separator = si.ParameterInfo.ListSeparator;
+                    if (!string.IsNullOrWhiteSpace(para.ListSeparator))
+                        separator = para.ListSeparator;
 
                     var splitValue = value.Split(new string[] { separator }, StringSplitOptions.RemoveEmptyEntries);
 
-                    var underlyingType = si.ParameterType.GetGenericArguments().FirstOrDefault();
+                    var underlyingType = para.Type.GetGenericArguments().FirstOrDefault();
                     var constructedListType = typeof(List<>).MakeGenericType(underlyingType);
                     var constructedList = (IList)Activator.CreateInstance(constructedListType);
 
@@ -320,7 +321,7 @@ namespace Trogsoft.CommandLine
                     }
                     catch (FormatException)
                     {
-                        throw new InvalidParameterException(si.ParameterInfo);
+                        throw new InvalidParameterException(para);
                     }
 
                     return constructedList;
@@ -328,15 +329,15 @@ namespace Trogsoft.CommandLine
                 }
                 else
                 {
-                    return Convert.ChangeType(value, si.ParameterType);
+                    return Convert.ChangeType(value, para.Type);
                 }
 
             }
             else
             {
-                if (si.ParameterInfo.IsRequired)
+                if (para.IsRequired)
                 {
-                    throw new ParameterMissingException(si.ParameterInfo);
+                    throw new ParameterMissingException(para);
                 }
                 else
                 {
@@ -417,39 +418,6 @@ namespace Trogsoft.CommandLine
                 }
             }
             return pi;
-
-        }
-
-        private object resolveValue(Type parameterType, ParameterAttribute paraConfig, string[] args)
-        {
-
-            if (!TypeResolver.IsResolvableType(parameterType))
-                throw new UnresolvableTypeException();
-
-            var resolver = TypeResolver.GetResolverForType(parameterType);
-            if (resolver == null)
-                return null;
-
-            var pi = getParameterInfo(paraConfig, args);
-            if (pi.Exists && pi.HasValue)
-            {
-
-                var value = TypeResolver.Resolve(pi.Value, parameterType);
-                return value;
-
-            }
-            else
-            {
-                if (paraConfig.IsRequired)
-                {
-                    if (!pi.Exists)
-                        throw new ParameterMissingException(paraConfig);
-                    else
-                        throw new InvalidParameterException(paraConfig);
-                }
-                return null;
-
-            }
 
         }
 
@@ -569,119 +537,45 @@ namespace Trogsoft.CommandLine
 
         }
 
-        private object getParameterValue(Type type, ParameterAttribute paraConfig, string[] args)
+        private object buildModel(ModelParameter mp, string[] args)
         {
 
-            var pi = getParameterInfo(paraConfig, args);
-            if (type == typeof(bool))
-            {
-                return pi.Exists;
-            }
+            var modelType = mp.ParameterType;
+            var model = Activator.CreateInstance(modelType);
 
-            bool isList = typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
-
-            if (pi.HasValue)
+            foreach (var prop in modelType.GetProperties().Where(x => x.GetSetMethod() != null))
             {
 
-                var value = pi.Value;
-
-                if (type.IsEnum)
+                var para = prop.GetCustomAttribute<ParameterAttribute>();
+                if (para == null)
                 {
-                    if (Enum.TryParse(type, value, ignoreCase: true, out object res))
-                    {
-                        return res;
-                    }
-                    else
-                    {
-                        throw new InvalidParameterException(paraConfig);
-                    }
-                }
-
-                if (isList)
-                {
-                    var separator = " ";
-                    if (!string.IsNullOrWhiteSpace(paraConfig.ListSeparator))
-                        separator = paraConfig.ListSeparator;
-
-                    var splitValue = value.Split(new string[] { separator }, StringSplitOptions.RemoveEmptyEntries);
-
-                    var underlyingType = type.GetGenericArguments().FirstOrDefault();
-                    var constructedListType = typeof(List<>).MakeGenericType(underlyingType);
-                    var constructedList = (IList)Activator.CreateInstance(constructedListType);
-
-                    try
-                    {
-                        splitValue.ToList().ForEach(x => constructedList.Add(Convert.ChangeType(x, underlyingType)));
-                    }
-                    catch (FormatException)
-                    {
-                        throw new InvalidParameterException(paraConfig);
-                    }
-
-                    return constructedList;
-
+                    para = mp.Parameters.SingleOrDefault(x => (!string.IsNullOrWhiteSpace(x.LongName) && x.LongName.Equals(prop.Name, StringComparison.CurrentCultureIgnoreCase)) || (x.ShortName > 0 && x.ShortName.ToString().Equals(prop.Name, StringComparison.CurrentCultureIgnoreCase)));
+                    if (para == null)
+                        throw new Exception("Internal error.");
                 }
                 else
                 {
-                    return Convert.ChangeType(value, type);
+                    para.Type = prop.PropertyType;
                 }
-            }
-            else
-            {
-                if (paraConfig.IsRequired)
+
+                object propValue;
+                var value = getParameterInfo(para, args);
+                if (value.Exists && value.HasValue)
                 {
-                    throw new ParameterMissingException(paraConfig);
+                    propValue = getTypedParameterValue(para, value);
                 }
                 else
                 {
-                    return null;
-                }
-            }
-
-        }
-
-        private object buildModel(Type type, string[] args)
-        {
-
-            var model = Activator.CreateInstance(type);
-            foreach (var prop in type.GetProperties())
-            {
-                if (prop.GetSetMethod() != null)
-                {
-                    bool isRequired = false;
                     var currentValue = prop.GetValue(model);
-
-                    var paraConfig = prop.GetCustomAttribute<ParameterAttribute>();
-                    if (paraConfig == null)
+                    if (para.IsRequired && object.Equals(para.Default, currentValue)) 
                     {
-
-                        if (prop.PropertyType.IsValueType)
-                            isRequired = currentValue.Equals(Activator.CreateInstance(prop.PropertyType));
-                        else
-                            isRequired = currentValue == null;
-
-                        if (prop.Name.Length == 1)
-                            paraConfig = new ParameterAttribute { ShortName = (char)prop.Name.First(), IsRequired = isRequired, Default = isRequired ? null : currentValue };
-                        else
-                            paraConfig = new ParameterAttribute { LongName = prop.Name, IsRequired = isRequired, Default = isRequired ? null : currentValue };
+                        throw new ParameterMissingException(para);
                     }
-
-                    object propValue;
-                    if (TypeResolver.IsResolvableType(prop.PropertyType))
-                    {
-                        propValue = resolveValue(prop.PropertyType, paraConfig, args);
-                    }
-                    else
-                    {
-                        propValue = getParameterValue(prop.PropertyType, paraConfig, args);
-                    }
-
-                    if (propValue == null && !isRequired)
-                        propValue = currentValue;
-
-                    prop.SetValue(model, propValue);
-
+                    propValue = para.Default;
                 }
+
+                prop.SetValue(model, propValue);
+
             }
 
             return model;

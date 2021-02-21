@@ -69,6 +69,7 @@ namespace Trogsoft.CommandLine
                 paraConfig.Default = para.DefaultValue;
             }
 
+            paraConfig.Type = para.ParameterType;
             ParameterInfo = paraConfig;
 
         }
@@ -111,7 +112,7 @@ namespace Trogsoft.CommandLine
                 }
 
                 paraConfig.isSimpleType = false;
-                paraConfig.Type = para.ParameterType;
+                paraConfig.Type = prop.PropertyType;
 
                 paraConfig.IsRequired = isRequired;
                 if (!paraConfig.IsRequired)
