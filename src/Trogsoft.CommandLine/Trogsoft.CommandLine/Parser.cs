@@ -96,6 +96,11 @@ namespace Trogsoft.CommandLine
             try
             {
                 operation = getOperation(verb, args.Skip(usedParameters).ToArray(), out int usedArgs);
+                if (operation == null)
+                {
+                    helpCalled(args, true);
+                    return 0;
+                }
                 usedParameters += usedArgs;
                 operationName = operation.Name;
             }
@@ -154,20 +159,29 @@ namespace Trogsoft.CommandLine
                 if (defaultOperation != null)
                     return defaultOperation.method;
                 else
-                    throw new UnspecifiedOperationException(verb.Type.Name, "@default");
+                {
+                    return null;
+                }
             }
 
             var firstArg = args.First();
             var op = methods.SingleOrDefault(x => string.Equals(x.op.Name, firstArg, StringComparison.CurrentCultureIgnoreCase) || x.method.Name.Equals(firstArg, StringComparison.CurrentCultureIgnoreCase));
             if (op == null)
             {
-                // no operation with the same name as the first argument.  See if the default operation on this verb has a positional parameter.
-                var methodParameters = getMethodParameterInfo(defaultOperation.method);
-                if (methodParameters.Any(x => x.Position == 0))
+                if (defaultOperation != null)
                 {
-                    return defaultOperation.method;
+                    // no operation with the same name as the first argument.  See if the default operation on this verb has a positional parameter.
+                    var methodParameters = getMethodParameterInfo(defaultOperation.method);
+                    if (methodParameters.Any(x => x.Position == 0))
+                    {
+                        return defaultOperation.method;
+                    }
+                    throw new UnspecifiedOperationException(verb.Type.Name, firstArg);
                 }
-                throw new UnspecifiedOperationException(verb.Type.Name, firstArg);
+                else
+                {
+                    throw new UnspecifiedOperationException(verb.Type.Name, firstArg);
+                }
             }
 
             usedArgs = 1;
@@ -201,9 +215,9 @@ namespace Trogsoft.CommandLine
 
         }
 
-        private bool helpCalled(string[] args)
+        private bool helpCalled(string[] args, bool force = false)
         {
-            if (args.Any() && args.FirstOrDefault().Equals("--help", StringComparison.CurrentCultureIgnoreCase))
+            if (force || args.Any() && args.FirstOrDefault().Equals("--help", StringComparison.CurrentCultureIgnoreCase))
             {
 
                 if (args.Length == 1)
@@ -567,7 +581,7 @@ namespace Trogsoft.CommandLine
                 else
                 {
                     var currentValue = prop.GetValue(model);
-                    if (para.IsRequired && object.Equals(para.Default, currentValue)) 
+                    if (para.IsRequired && object.Equals(para.Default, currentValue))
                     {
                         throw new ParameterMissingException(para);
                     }

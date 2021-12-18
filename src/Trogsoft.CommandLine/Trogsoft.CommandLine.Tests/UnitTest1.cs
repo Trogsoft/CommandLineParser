@@ -90,7 +90,7 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void MissingOperation()
         {
-            Assert.AreEqual(ParserErrorCodes.ERR_INVALID_OPERATION, parser.Run(new string[] { "testc" }));
+            Assert.AreEqual(ParserErrorCodes.ERR_INVALID_OPERATION, parser.Run(new string[] { "testc", "nonexist" }));
         }
 
         [Test]
@@ -209,6 +209,12 @@ namespace Trogsoft.CommandLine.Tests
             Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "testb", "doesnotexist" }));
             Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "testb", "testfloat" }));
             Assert.DoesNotThrow(() => parser.Run(new string[] { "--help", "testd", "datetime" }));
+        }
+
+        [Test]
+        public void HelpInsteadOfDefault()
+        {
+            parser.Run(new string[] { "testc" });
         }
 
         [Test]
