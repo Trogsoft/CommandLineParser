@@ -2,6 +2,12 @@
 
 [![Build Status](https://dev.azure.com/trogsoft-ltd/Trogsoft.CommandLineParser/_apis/build/status/Trogsoft.CommandLineParser?branchName=develop)](https://dev.azure.com/trogsoft-ltd/Trogsoft.CommandLineParser/_build/latest?definitionId=8&branchName=develop)
 
+Available on NuGet
+
+```
+Install-Package Trogsoft.CommandLine
+```
+
 This is a command line argument parser which separates out actions into self contained classes known as verbs.  To create a verb:
 
 ```c#
@@ -45,4 +51,3 @@ On the command line, you can then call
 Hello, Dave.
 ```
 
-This is considered a pre-alpha at the moment.  There won't be any releases until it reached a stage of reasonable functionality.
