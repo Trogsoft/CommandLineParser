@@ -214,7 +214,7 @@ namespace Trogsoft.CommandLine.Tests
         [Test]
         public void HelpInsteadOfDefault()
         {
-            parser.Run(new string[] { "testc" });
+            Assert.AreEqual(ParserErrorCodes.ERR_DEFAULTED_TO_HELP, parser.Run(new string[] { "testc" }));
         }
 
         [Test]
