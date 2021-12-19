@@ -99,7 +99,7 @@ namespace Trogsoft.CommandLine
                 if (operation == null)
                 {
                     helpCalled(args, true);
-                    return 0;
+                    return ParserErrorCodes.ERR_DEFAULTED_TO_HELP;
                 }
                 usedParameters += usedArgs;
                 operationName = operation.Name;
@@ -220,12 +220,18 @@ namespace Trogsoft.CommandLine
             if (force || args.Any() && args.FirstOrDefault().Equals("--help", StringComparison.CurrentCultureIgnoreCase))
             {
 
-                if (args.Length == 1)
+                // If force is enabled, and none of the parameters is --help, we assume we defaulted into this method
+                // and as such, the parameter list check needs to be shorter.
+                //var modifier = (force && !args.Contains("--help")) ? 1 : 0;
+
+                var argsWithoutHelp = args.Except(new[] { "--help" }, StringComparer.CurrentCultureIgnoreCase).ToArray();
+
+                if (argsWithoutHelp.Length == 0)
                     Help();
-                else if (args.Length == 2)
-                    Help(args[1]);
-                else if (args.Length >= 3)
-                    Help(args[1], args[2]);
+                else if (argsWithoutHelp.Length == 1)
+                    Help(args[0]);
+                else if (argsWithoutHelp.Length >= 2)
+                    Help(args[0], args[1]);
 
                 return true;
 

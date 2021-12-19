@@ -51,3 +51,4 @@ On the command line, you can then call
 Hello, Dave.
 ```
 
+For more detailed documentation, check the [Wiki](https://github.com/Trogsoft/CommandLineParser/wiki).

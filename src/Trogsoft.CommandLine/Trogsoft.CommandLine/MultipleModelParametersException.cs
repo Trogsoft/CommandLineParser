@@ -13,7 +13,7 @@ namespace Trogsoft.CommandLine
         public MultipleModelParametersException(MethodInfo method) : base($"Operation '{method.Name}' on '{method.DeclaringType.Name}' defines multiple model parameters.  This is unsupported.")
         {
             this.method = method;
-            this.HResult = ParserErrorCodes.MULTIPLE_MODEL_PARAMETERS;
+            this.HResult = ParserErrorCodes.ERR_MULTIPLE_MODEL_PARAMETERS;
         }
 
         public MultipleModelParametersException(string message, Exception innerException) : base(message, innerException)
