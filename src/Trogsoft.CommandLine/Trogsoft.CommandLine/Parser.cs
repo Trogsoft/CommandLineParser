@@ -229,9 +229,9 @@ namespace Trogsoft.CommandLine
                 if (argsWithoutHelp.Length == 0)
                     Help();
                 else if (argsWithoutHelp.Length == 1)
-                    Help(args[0]);
+                    Help(argsWithoutHelp[0]);
                 else if (argsWithoutHelp.Length >= 2)
-                    Help(args[0], args[1]);
+                    Help(argsWithoutHelp[0], argsWithoutHelp[1]);
 
                 return true;
 
