@@ -87,6 +87,11 @@ namespace Trogsoft.CommandLine
                 verbName = verb.Verb.Name;
                 usedParameters += usedArgs;
             }
+            catch (UnspecifiedVerbException ex)
+            {
+                helpCalled(args, true);
+                return ex.HResult;
+            }
             catch (Exception ex)
             {
                 Error(ex.Message);

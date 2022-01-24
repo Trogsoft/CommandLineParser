@@ -8,6 +8,17 @@ namespace Trogsoft.CommandLine
     public class Verb
     {
 
+        private void ColoredText(string text, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            Console.WriteLine(text);
+            Console.ResetColor();
+        }
+
+        protected void WriteError(string text) => ColoredText(text, ConsoleColor.Red);
+        protected void WriteWarning(string text) => ColoredText(text, ConsoleColor.Yellow);
+        protected void WriteTitle(string text) => ColoredText(text, ConsoleColor.White);
+
         protected void WriteTextBlock(string text, int maxWidth = 80)
         {
             int indentWidth = Console.CursorLeft;
